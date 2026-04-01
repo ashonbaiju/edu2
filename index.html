@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tuition Management System</title>
+    <!-- Google Fonts for modern typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-graduation-cap"></i> 
+                <span>EduSys</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active">
+                    <div class="nav-icon"><i class="fa-solid fa-compass"></i></div>
+                    <span>Explore</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <div class="nav-icon"><i class="fa-solid fa-book"></i></div>
+                    <span>Subjects</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <div class="nav-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
+                    <span>Teachers</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <div class="nav-icon"><i class="fa-solid fa-book-open"></i></div>
+                    <span>Materials</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-bottom-actions">
+                <button class="icon-btn neumorphic"><i class="fa-brands fa-instagram"></i></button>
+                <button class="icon-btn neumorphic text-blue"><i class="fa-brands fa-twitter"></i></button>
+                <button class="icon-btn neumorphic text-primary"><i class="fa-solid fa-play"></i></button>
+            </div>
+        </aside>
+
+        <!-- Main Content Central Area -->
+        <main class="main-content">
+            <header class="top-header">
+                <div></div>
+                <div class="header-right">
+                    <button class="icon-btn neumorphic"><i class="fa-solid fa-gear"></i></button>
+                    <button class="icon-btn neumorphic notification-btn">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="badge"></span>
+                    </button>
+                    <div class="user-profile">
+                        <img src="https://i.pravatar.cc/100?img=47" alt="Profile">
+                        <span>jamsolove</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="dashboard-hero">
+                <div class="hero-text">
+                    <h1>Mathematics<br>Masterclass</h1>
+                    <p class="subtitle">Mr. Anderson</p>
+                    <p class="description">Calculus and advanced algebra. Join the live session now to interact and learn.</p>
+                </div>
+                
+                <div class="hero-visual">
+                    <div class="circular-highlight neumorphic-circle">
+                        <div class="progress-ring"></div>
+                        <img src="https://images.unsplash.com/photo-1544717302-de2939b7ef71?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Live Class" class="hero-img">
+                        <button class="play-btn-large neumorphic-convex"><i class="fa-solid fa-play"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-row">
+                <div class="stat-card neumorphic">
+                    <div class="card-icon-header">
+                        <img src="https://i.pravatar.cc/50?img=11" alt="Student" class="small-avatar">
+                        <span class="status-dot"></span>
+                    </div>
+                    <h4>Mathematics</h4>
+                    <p class="user-sub">Mr. Anderson</p>
+                    <div class="audio-wave">
+                        <div class="bar h-1"></div><div class="bar h-2"></div><div class="bar h-3"></div><div class="bar h-2"></div><div class="bar h-1"></div><div class="bar h-4"></div><div class="bar h-2"></div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="icon-btn small neumorphic"><i class="fa-solid fa-backward-step"></i></button>
+                        <button class="icon-btn small neumorphic primary-fill"><i class="fa-solid fa-play"></i></button>
+                        <button class="icon-btn small neumorphic"><i class="fa-solid fa-forward-step"></i></button>
+                    </div>
+                </div>
+
+                <div class="stat-card neumorphic">
+                    <h2 class="stat-number">01</h2>
+                    <h4>Science<br>collections</h4>
+                    <div class="stat-footer">
+                        <i class="fa-solid fa-folder"></i> 156 Videos
+                    </div>
+                </div>
+
+                <div class="stat-card neumorphic">
+                    <h2 class="stat-number">02</h2>
+                    <h4>English<br>grammar</h4>
+                    <div class="stat-footer">
+                        <i class="fa-solid fa-folder"></i> 82 Notes
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Sidebar (Up Next / Schedule) -->
+        <aside class="right-panel">
+            <h3 class="panel-title">Upcoming</h3>
+            <div class="list-container">
+                <!-- Item 1 -->
+                <div class="list-item neumorphic">
+                    <img src="https://images.unsplash.com/photo-1580894732444-8ecded7900cd?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Icon" class="list-img">
+                    <div class="list-text">
+                        <h5>Physics 101</h5>
+                        <p>Dr. Smith</p>
+                    </div>
+                    <button class="icon-btn list-action"><i class="fa-solid fa-arrow-down"></i></button>
+                </div>
+                
+                <!-- Item 2 -->
+                <div class="list-item neumorphic">
+                    <img src="https://images.unsplash.com/photo-1577896851231-70ef18881754?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Icon" class="list-img">
+                    <div class="list-text">
+                        <h5>Chem Lab</h5>
+                        <p>Mrs. Davis</p>
+                    </div>
+                    <div class="circular-progress">
+                        <i class="fa-solid fa-pause text-primary"></i>
+                    </div>
+                </div>
+
+                <!-- Item 3 -->
+                <div class="list-item neumorphic">
+                    <img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Icon" class="list-img">
+                    <div class="list-text">
+                        <h5>History</h5>
+                        <p>Mr. Brown</p>
+                    </div>
+                    <div class="circular-progress">
+                        <i class="fa-solid fa-pause text-primary"></i>
+                    </div>
+                </div>
+                
+                <!-- Item 4 -->
+                <div class="list-item neumorphic">
+                    <img src="https://images.unsplash.com/photo-1427504494785-3a9a2753bf05?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Icon" class="list-img">
+                    <div class="list-text">
+                        <h5>Computer Science</h5>
+                        <p>Tech Hub</p>
+                    </div>
+                    <div class="circular-progress">
+                        <i class="fa-solid fa-pause text-primary"></i>
+                    </div>
+                </div>
+                
+                <!-- Item 5 -->
+                <div class="list-item neumorphic">
+                    <img src="https://images.unsplash.com/photo-1497633762265-9d179a990aa6?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Icon" class="list-img">
+                    <div class="list-text">
+                        <h5>Art & Design</h5>
+                        <p>Creative Studio</p>
+                    </div>
+                    <div class="circular-progress">
+                        <i class="fa-solid fa-pause text-primary"></i>
+                    </div>
+                </div>
+                
+                <!-- Item 6 -->
+                <div class="list-item neumorphic">
+                    <img src="https://images.unsplash.com/photo-1511629091441-ee46146481b6?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Icon" class="list-img">
+                    <div class="list-text">
+                        <h5>Economics</h5>
+                        <p>Business Dept</p>
+                    </div>
+                    <div class="circular-progress">
+                        <i class="fa-solid fa-pause text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+    
+    <script src="js/script.js"></script>
+</body>
+</html>

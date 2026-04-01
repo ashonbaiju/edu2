@@ -1,0 +1,54 @@
+<?php
+require_once '../includes/header.php';
+requireRole('student');
+$student = $conn->query("SELECT s.id FROM students s WHERE s.user_id={$_SESSION['user_id']}")->fetch_assoc();
+$sid = $student['id'];
+$msg = '';
+
+// Handle doubt submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'ask') {
+    $title = $_POST['title']; $desc = $_POST['description']; $sub_id = (int)$_POST['subject_id'];
+    $stmt = $conn->prepare("INSERT INTO doubts (student_id, subject_id, title, description) VALUES (?,?,?,?)");
+    $stmt->bind_param('iiss', $sid, $sub_id, $title, $desc); $stmt->execute();
+    $msg = '<div class="alert alert-success">Doubt submitted! Teacher will respond soon.</div>';
+}
+
+$doubts = $conn->query("SELECT d.*, sub.name as subject_name, u.name as answered_by_name FROM doubts d LEFT JOIN subjects sub ON d.subject_id=sub.id LEFT JOIN users u ON d.answered_by=u.id WHERE d.student_id=$sid ORDER BY d.created_at DESC");
+$subjects = $conn->query("SELECT * FROM subjects ORDER BY name");
+?>
+<div class="page-header"><div><h1>Ask a Doubt</h1><p>Submit academic doubts for teacher review</p></div><div class="page-actions"><button class="btn btn-primary" onclick="openModal('doubtModal')"><i class="fa-solid fa-question-circle"></i> Ask Doubt</button></div></div>
+<?= $msg ?>
+<div class="table-card">
+    <div class="table-responsive">
+        <table>
+            <thead><tr><th>Title</th><th>Subject</th><th>Status</th><th>Answer</th><th>Date</th></tr></thead>
+            <tbody>
+                <?php if ($doubts->num_rows === 0): ?><tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-secondary);">No doubts submitted yet.</td></tr><?php else: ?>
+                <?php while ($d = $doubts->fetch_assoc()): ?>
+                <tr>
+                    <td><strong><?= htmlspecialchars($d['title']) ?></strong><br><small style="color:var(--text-secondary);"><?= mb_strimwidth($d['description'], 0, 60, '...') ?></small></td>
+                    <td><?= htmlspecialchars($d['subject_name'] ?? '-') ?></td>
+                    <td><span class="badge-pill <?= $d['status']==='answered'?'badge-success':($d['status']==='closed'?'badge-gray':'badge-warning') ?>"><?= ucfirst($d['status']) ?></span></td>
+                    <td style="max-width:200px;white-space:normal;"><?= $d['answer'] ? htmlspecialchars($d['answer']) : '<span style="color:var(--text-secondary);font-size:0.8rem;">Awaiting response...</span>' ?><?php if ($d['answered_by_name']): ?><br><small style="color:var(--text-secondary);">— <?= htmlspecialchars($d['answered_by_name']) ?></small><?php endif; ?></td>
+                    <td><?= date('M d', strtotime($d['created_at'])) ?></td>
+                </tr>
+                <?php endwhile; ?><?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal-overlay" id="doubtModal">
+    <div class="modal">
+        <div class="modal-header"><h3>Submit a Doubt</h3><button class="modal-close" onclick="closeModal('doubtModal')"><i class="fa-solid fa-times"></i></button></div>
+        <form method="POST"><input type="hidden" name="action" value="ask">
+            <div class="form-grid">
+                <div class="form-group"><label>Subject</label><select name="subject_id" class="form-control"><?php $subjects->data_seek(0); while ($sub = $subjects->fetch_assoc()): ?><option value="<?= $sub['id'] ?>"><?= htmlspecialchars($sub['name']) ?></option><?php endwhile; ?></select></div>
+                <div class="form-group"><label>Title *</label><input name="title" class="form-control" required placeholder="Brief title for your doubt"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label>Describe your doubt *</label><textarea name="description" class="form-control" rows="4" required placeholder="Explain your doubt in detail..."></textarea></div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('doubtModal')">Cancel</button><button type="submit" class="btn btn-primary">Submit Doubt</button></div>
+        </form>
+    </div>
+</div>
+<?php require_once '../includes/footer.php'; ?>
