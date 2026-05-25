@@ -5,11 +5,16 @@ $student = $conn->query("SELECT s.* FROM students s WHERE s.user_id={$_SESSION['
 $sid = $student['id'];
 
 // Generate AI prediction (simple logic based on attendance + avg marks)
-$att_data = $conn->query("SELECT COUNT(*) as total, SUM(status='present') as present FROM attendance WHERE student_id=$sid")->fetch_assoc();
-$att_pct = $att_data['total'] > 0 ? round(($att_data['present']/$att_data['total'])*100) : 0;
-$avg_marks = $conn->query("SELECT AVG(r.marks_obtained/e.total_marks*100) as avg FROM results r JOIN exams e ON r.exam_id=e.id WHERE r.student_id=$sid")->fetch_assoc()['avg'] ?? 0;
+$att_res = $conn->query("SELECT COUNT(*) as total, SUM(status='present') as present FROM attendance WHERE student_id=$sid");
+$att_data = $att_res ? $att_res->fetch_assoc() : ['total' => 0, 'present' => 0];
+$att_pct = ($att_data['total'] ?? 0) > 0 ? round(($att_data['present']/$att_data['total'])*100) : 0;
+
+$avg_res = $conn->query("SELECT AVG(r.marks_obtained/e.total_marks*100) as avg FROM results r JOIN exams e ON r.exam_id=e.id WHERE r.student_id=$sid");
+$avg_marks = $avg_res ? ($avg_res->fetch_assoc()['avg'] ?? 0) : 0;
 $avg_marks = round($avg_marks, 1);
-$pending_assignments = $conn->query("SELECT COUNT(*) as cnt FROM assignments a JOIN batch_students bs ON bs.batch_id=a.batch_id WHERE bs.student_id=$sid AND a.id NOT IN (SELECT assignment_id FROM submissions WHERE student_id=$sid)")->fetch_assoc()['cnt'];
+
+$pend_res = $conn->query("SELECT COUNT(*) as cnt FROM assignments a JOIN batch_students bs ON bs.batch_id=a.batch_id WHERE bs.student_id=$sid AND a.id NOT IN (SELECT assignment_id FROM submissions WHERE student_id=$sid)");
+$pending_assignments = $pend_res ? ($pend_res->fetch_assoc()['cnt'] ?? 0) : 0;
 
 // Simple AI prediction algorithm
 $score = ($att_pct * 0.4) + ($avg_marks * 0.5) + (max(0, 10 - $pending_assignments) * 1);

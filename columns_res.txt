@@ -1,0 +1,7 @@
+Field	Type	Null	Key	Default	Extra
+id	int(11)	NO	PRI	NULL	auto_increment
+student_id	int(11)	NO		NULL	
+exam_id	int(11)	NO		NULL	
+marks_obtained	decimal(5,2)	YES		NULL	
+grade_letter	varchar(5)	YES		NULL	
+created_at	timestamp	NO		current_timestamp()	

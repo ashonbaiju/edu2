@@ -1,45 +1,115 @@
 <?php
 require_once '../includes/header.php';
 requireRole('admin');
+
 $msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $cid = (int)$_POST['complaint_id']; $status = $_POST['status']; $resp = $_POST['admin_response'];
-    $stmt = $conn->prepare("UPDATE complaints SET status=?, admin_response=? WHERE id=?"); $stmt->bind_param('ssi', $status, $resp, $cid); $stmt->execute();
-    $msg = '<div class="alert alert-success">Complaint updated!</div>';
+    $action = $_POST['action'] ?? '';
+    if ($action === 'respond') {
+        $cid      = (int)$_POST['complaint_id'];
+        $response = trim($_POST['admin_response']);
+        $status   = $_POST['status'];
+        $stmt = $conn->prepare("UPDATE complaints SET admin_response=?, status=? WHERE id=?");
+        $stmt->bind_param('ssi', $response, $status, $cid);
+        $stmt->execute();
+        $msg = '<div class="alert alert-success">Response saved!</div>';
+    }
 }
-$complaints = $conn->query("SELECT c.*, u.name as user_name, au.name as against_name FROM complaints c JOIN users u ON c.user_id=u.id LEFT JOIN users au ON c.against_user_id=au.id ORDER BY c.created_at DESC");
+
+$status_f = $_GET['status'] ?? '';
+$where    = $status_f ? "WHERE c.status = '" . $conn->real_escape_string($status_f) . "'" : '';
+
+$complaints = $conn->query("
+    SELECT c.*, u.name as reporter_name, u.role as reporter_role,
+           ag.name as against_name
+    FROM complaints c
+    JOIN users u ON c.user_id = u.id
+    LEFT JOIN users ag ON c.against_user_id = ag.id
+    $where
+    ORDER BY c.created_at DESC
+");
 ?>
-<div class="page-header"><div><h1>Complaint Management</h1><p>Review and resolve complaints</p></div></div>
+<div class="page-header">
+    <div><h1>Complaint Management</h1><p>Review and resolve user complaints</p></div>
+</div>
+
+<!-- Filters -->
+<div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+    <a href="complaints.php" class="btn <?= !$status_f ? 'btn-primary' : 'btn-outline' ?> btn-sm">All</a>
+    <a href="?status=open" class="btn <?= $status_f === 'open' ? 'btn-primary' : 'btn-outline' ?> btn-sm">Open</a>
+    <a href="?status=in_review" class="btn <?= $status_f === 'in_review' ? 'btn-primary' : 'btn-outline' ?> btn-sm">In Review</a>
+    <a href="?status=resolved" class="btn <?= $status_f === 'resolved' ? 'btn-primary' : 'btn-outline' ?> btn-sm">Resolved</a>
+    <a href="?status=closed" class="btn <?= $status_f === 'closed' ? 'btn-primary' : 'btn-outline' ?> btn-sm">Closed</a>
+</div>
 <?= $msg ?>
+
 <div class="table-card">
+    <div class="table-header"><h3>Complaints (<?= $complaints->num_rows ?>)</h3></div>
     <div class="table-responsive">
         <table>
-            <thead><tr><th>Filed By</th><th>Against</th><th>Subject</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+            <thead><tr><th>Reporter</th><th>Role</th><th>Against</th><th>Subject</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
             <tbody>
-                <?php if ($complaints->num_rows === 0): ?><tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-secondary);">No complaints.</td></tr><?php else: ?>
-                <?php while ($c = $complaints->fetch_assoc()): ?>
+                <?php if ($complaints->num_rows === 0): ?>
+                <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-secondary);">No complaints found.</td></tr>
+                <?php else: ?>
+                <?php while ($c = $complaints->fetch_assoc()):
+                    $status_class = ['open'=>'badge-danger','in_review'=>'badge-warning','resolved'=>'badge-success','closed'=>'badge-gray'][$c['status']] ?? 'badge-info';
+                ?>
                 <tr>
-                    <td><?= htmlspecialchars($c['user_name']) ?></td>
-                    <td><?= $c['against_name'] ? htmlspecialchars($c['against_name']) : '-' ?></td>
-                    <td><strong><?= htmlspecialchars($c['subject'] ?? 'N/A') ?></strong><br><small style="color:var(--text-secondary);"><?= mb_strimwidth($c['description'], 0, 60, '...') ?></small></td>
-                    <td><span class="badge-pill <?= $c['status']==='open'?'badge-danger':($c['status']==='resolved'?'badge-success':'badge-warning') ?>"><?= ucfirst($c['status']) ?></span></td>
-                    <td><?= date('M d', strtotime($c['created_at'])) ?></td>
-                    <td><button class="btn btn-outline btn-sm" onclick="openResolve(<?= $c['id'] ?>, '<?= htmlspecialchars($c['admin_response'] ?? '') ?>')"><i class="fa-solid fa-reply"></i> Respond</button></td>
+                    <td><strong><?= htmlspecialchars($c['reporter_name']) ?></strong></td>
+                    <td><span class="badge-pill badge-info"><?= ucfirst($c['reporter_role']) ?></span></td>
+                    <td><?= htmlspecialchars($c['against_name'] ?? '-') ?></td>
+                    <td>
+                        <strong><?= htmlspecialchars($c['subject']) ?></strong><br>
+                        <small style="color:var(--text-secondary);"><?= mb_strimwidth($c['description'], 0, 70, '...') ?></small>
+                        <?php if ($c['admin_response']): ?>
+                        <br><small style="color:var(--success);"><i class="fa-solid fa-reply"></i> <?= mb_strimwidth($c['admin_response'], 0, 60, '...') ?></small>
+                        <?php endif; ?>
+                    </td>
+                    <td><span class="badge-pill <?= $status_class ?>"><?= str_replace('_', ' ', ucfirst($c['status'])) ?></span></td>
+                    <td><?= date('M d, Y', strtotime($c['created_at'])) ?></td>
+                    <td>
+                        <button class="btn btn-outline btn-sm" onclick="openRespondModal(<?= $c['id'] ?>, '<?= addslashes($c['admin_response'] ?? '') ?>', '<?= $c['status'] ?>')">
+                            <i class="fa-solid fa-reply"></i> Respond
+                        </button>
+                    </td>
                 </tr>
-                <?php endwhile; ?><?php endif; ?>
+                <?php endwhile; ?>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
 </div>
-<div class="modal-overlay" id="resolveModal">
+
+<!-- Respond Modal -->
+<div class="modal-overlay" id="respondModal">
     <div class="modal">
-        <div class="modal-header"><h3>Respond to Complaint</h3><button class="modal-close" onclick="closeModal('resolveModal')"><i class="fa-solid fa-times"></i></button></div>
-        <form method="POST"><input type="hidden" name="complaint_id" id="complaint_id_input">
-            <div class="form-group"><label>Update Status</label><select name="status" class="form-control"><option value="in_review">In Review</option><option value="resolved">Resolved</option><option value="closed">Closed</option></select></div>
-            <div class="form-group" style="margin-top:15px;"><label>Admin Response</label><textarea name="admin_response" id="admin_resp" class="form-control" rows="4" placeholder="Write your response..."></textarea></div>
-            <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('resolveModal')">Cancel</button><button type="submit" class="btn btn-primary">Submit</button></div>
+        <div class="modal-header"><h3>Respond to Complaint</h3><button class="modal-close" onclick="closeModal('respondModal')"><i class="fa-solid fa-times"></i></button></div>
+        <form method="POST"><input type="hidden" name="action" value="respond">
+            <input type="hidden" name="complaint_id" id="respond_complaint_id">
+            <div class="form-group" style="margin-bottom:15px;">
+                <label>Admin Response</label>
+                <textarea name="admin_response" id="respond_text" class="form-control" rows="4" placeholder="Type your response here..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Update Status</label>
+                <select name="status" id="respond_status" class="form-control">
+                    <option value="open">Open</option>
+                    <option value="in_review">In Review</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                </select>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal('respondModal')">Cancel</button><button type="submit" class="btn btn-primary">Save Response</button></div>
         </form>
     </div>
 </div>
-<script>function openResolve(id, resp) { document.getElementById('complaint_id_input').value=id; document.getElementById('admin_resp').value=resp; openModal('resolveModal'); }</script>
+<script>
+function openRespondModal(id, response, status) {
+    document.getElementById('respond_complaint_id').value = id;
+    document.getElementById('respond_text').value = response;
+    document.getElementById('respond_status').value = status;
+    openModal('respondModal');
+}
+</script>
 <?php require_once '../includes/footer.php'; ?>

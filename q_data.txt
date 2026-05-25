@@ -1,0 +1,4 @@
+id	exam_id	question
+3	2	peerinte aanswer
+2	2	ninte peer entha
+1	2	onnamathe chodhyam

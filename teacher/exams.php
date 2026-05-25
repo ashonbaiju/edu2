@@ -3,7 +3,12 @@ require_once '../includes/header.php';
 requireRole('teacher');
 
 $teacher = $conn->query("SELECT t.id FROM teachers t WHERE t.user_id={$_SESSION['user_id']}")->fetch_assoc();
-$tid = $teacher['id'];
+if (!$teacher) {
+    echo '<div class="alert alert-danger">Your teacher profile could not be loaded. Please contact an administrator.</div>';
+    require_once '../includes/footer.php';
+    exit;
+}
+$tid = (int) $teacher['id'];
 $msg = '';
 $tab = $_GET['tab'] ?? 'exams';
 
@@ -12,16 +17,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'create_exam') {
         $title    = $_POST['title'];
-        $sub_id   = (int)$_POST['subject_id'] ?: null;
-        $batch_id = (int)$_POST['batch_id']   ?: null;
-        $date     = $_POST['exam_date'];
+        $sub_id   = isset($_POST['subject_id']) && $_POST['subject_id'] !== '' ? (int) $_POST['subject_id'] : null;
+        $batch_id = isset($_POST['batch_id']) && $_POST['batch_id'] !== '' ? (int) $_POST['batch_id'] : null;
+        $date     = trim((string) ($_POST['exam_date'] ?? ''));
+        $date     = $date === '' ? null : $date;
         $total    = (int)$_POST['total_marks'];
         $pass     = (int)$_POST['pass_marks'];
         $type     = $_POST['exam_type'];
         $uid      = $_SESSION['user_id'];
-        $stmt = $conn->prepare("INSERT INTO exams (title,subject_id,batch_id,exam_date,total_marks,pass_marks,exam_type,created_by) VALUES (?,?,?,?,?,?,?,?)");
+        $stmt = $conn->prepare("INSERT INTO examinations (title,subject_id,batch_id,exam_date,total_marks,pass_marks,exam_type,created_by) VALUES (?,?,?,?,?,?,?,?)");
         if ($stmt) {
-            $stmt->bind_param('siisiisi', $title, $sub_id, $batch_id, $date, $total, $pass, $type, $uid);
+            $stmt->bind_param('siisiiis', $title, $sub_id, $batch_id, $date, $total, $pass, $type, $uid);
             if ($stmt->execute()) {
                 $msg = '<div class="alert alert-success">Exam created!</div>';
             } else {
@@ -35,14 +41,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sid   = (int)$_POST['student_id'];
         $marks = floatval($_POST['marks_obtained']);
         // Auto-calculate grade
-        $exam = $conn->query("SELECT total_marks FROM exams WHERE id=$eid")->fetch_assoc();
+        $exam = $conn->query("SELECT total_marks FROM examinations WHERE id=$eid")->fetch_assoc();
         $pct  = $exam ? round(($marks/$exam['total_marks'])*100) : 0;
         $grade = $pct >= 90 ? 'A+' : ($pct >= 80 ? 'A' : ($pct >= 70 ? 'B+' : ($pct >= 60 ? 'B' : ($pct >= 50 ? 'C' : ($pct >= 40 ? 'D' : 'F')))));
-        $check = $conn->query("SELECT id FROM results WHERE exam_id=$eid AND student_id=$sid");
+        $check = $conn->query("SELECT id FROM examination_results WHERE exam_id=$eid AND student_id=$sid");
         if ($check->num_rows > 0) {
-            $conn->query("UPDATE results SET marks_obtained=$marks, grade_letter='$grade' WHERE exam_id=$eid AND student_id=$sid");
+            $conn->query("UPDATE examination_results SET marks_obtained=$marks, grade_letter='$grade' WHERE exam_id=$eid AND student_id=$sid");
         } else {
-            $stmt = $conn->prepare("INSERT INTO results (student_id, exam_id, marks_obtained, grade_letter) VALUES (?,?,?,?)");
+            $stmt = $conn->prepare("INSERT INTO examination_results (student_id, exam_id, marks_obtained, grade_letter) VALUES (?,?,?,?)");
             $stmt->bind_param('iids', $sid, $eid, $marks, $grade);
             $stmt->execute();
         }
@@ -53,9 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $my_batches = $conn->query("SELECT b.*, sub.name as subject_name FROM batches b LEFT JOIN subjects sub ON b.subject_id=sub.id WHERE b.teacher_id=$tid AND b.status='active'");
 $subjects   = $conn->query("SELECT * FROM subjects ORDER BY name");
-$my_exams   = $conn->query("SELECT e.*, sub.name as subject_name, b.name as batch_name FROM exams e LEFT JOIN subjects sub ON e.subject_id=sub.id LEFT JOIN batches b ON e.batch_id=b.id WHERE b.teacher_id=$tid OR e.created_by={$_SESSION['user_id']} ORDER BY e.id DESC");
-$my_results = $conn->query("SELECT r.*, u.name as student_name, s.roll_number, e.title as exam_title, e.total_marks FROM results r JOIN students s ON r.student_id=s.id JOIN users u ON s.user_id=u.id JOIN exams e ON r.exam_id=e.id WHERE e.created_by={$_SESSION['user_id']} ORDER BY r.id DESC LIMIT 100");
-$exams_for_result = $conn->query("SELECT e.id, e.title, e.total_marks FROM exams e WHERE e.created_by={$_SESSION['user_id']} ORDER BY e.exam_date DESC");
+$my_exams   = $conn->query("SELECT e.*, sub.name as subject_name, b.name as batch_name FROM examinations e LEFT JOIN subjects sub ON e.subject_id=sub.id LEFT JOIN batches b ON e.batch_id=b.id WHERE b.teacher_id=$tid OR e.created_by={$_SESSION['user_id']} ORDER BY e.id DESC");
+$my_results = $conn->query("SELECT r.*, u.name as student_name, s.roll_number, e.title as exam_title, e.total_marks FROM examination_results r JOIN students s ON r.student_id=s.id JOIN users u ON s.user_id=u.id JOIN examinations e ON r.exam_id=e.id WHERE e.created_by={$_SESSION['user_id']} ORDER BY r.id DESC LIMIT 100");
+$exams_for_result = $conn->query("SELECT e.id, e.title, e.total_marks FROM examinations e WHERE e.created_by={$_SESSION['user_id']} ORDER BY e.exam_date DESC");
 
 // Students in my batches
 $my_students_q = $conn->query("SELECT DISTINCT s.id, u.name, s.roll_number FROM batch_students bs JOIN batches b ON bs.batch_id=b.id JOIN students s ON bs.student_id=s.id JOIN users u ON s.user_id=u.id WHERE b.teacher_id=$tid ORDER BY u.name");
@@ -63,8 +69,8 @@ $my_students_q = $conn->query("SELECT DISTINCT s.id, u.name, s.roll_number FROM 
 <div class="page-header">
     <div><h1>Exams & Results</h1><p>Create exams and record student results</p></div>
     <div class="page-actions">
-        <button class="btn btn-primary" onclick="openModal('createExamModal')"><i class="fa-solid fa-plus"></i> Create Exam</button>
-        <button class="btn btn-secondary" onclick="openModal('addResultModal')"><i class="fa-solid fa-pen"></i> Add Result</button>
+        <button type="button" class="btn btn-primary" onclick="openModal('createExamModal')"><i class="fa-solid fa-plus"></i> Create Exam</button>
+        <button type="button" class="btn btn-secondary" onclick="openModal('addResultModal')"><i class="fa-solid fa-pen"></i> Add Result</button>
     </div>
 </div>
 <?= $msg ?>

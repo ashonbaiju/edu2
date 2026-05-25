@@ -4,12 +4,16 @@ if (isLoggedIn()) { redirectByRole(); }
 $error = '';
 $success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    require_once 'includes/db.php';
+    require_once 'config/db.php';
     $name = trim($_POST['name'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirm = $_POST['confirm_password'] ?? '';
     $role = $_POST['role'] ?? 'student';
+    // Security: Only allow student or teacher registration from public form
+    if (!in_array($role, ['student', 'teacher'])) {
+        $role = 'student';
+    }
     $phone = trim($_POST['phone'] ?? '');
     if ($name && $email && $password && $role) {
         if ($password !== $confirm) {
@@ -24,7 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'This email is already registered.';
             } else {
                 $hashed = password_hash($password, PASSWORD_BCRYPT);
-                $status = ($role === 'admin') ? 'inactive' : 'pending'; // admin requires manual activation
+                // Students and teachers are active immediately; only admin requires manual activation
+                $status = ($role === 'admin') ? 'inactive' : 'active';
                 $stmt = $conn->prepare("INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, ?, ?)");
                 $stmt->bind_param('sssss', $name, $email, $hashed, $role, $status);
                 if ($stmt->execute()) {
@@ -36,11 +41,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $ins->bind_param('iss', $uid, $rn, $phone);
                         $ins->execute();
                     } elseif ($role === 'teacher') {
-                        $ins = $conn->prepare("INSERT INTO teachers (user_id, phone) VALUES (?,?)");
+                        $ins = $conn->prepare("INSERT INTO teachers (user_id, phone, approval_status) VALUES (?,?,'approved')");
                         $ins->bind_param('is', $uid, $phone);
                         $ins->execute();
                     }
-                    $success = 'Account created! ' . ($role !== 'admin' ? 'Please wait for admin approval.' : 'Contact admin to activate your account.');
+                    // Auto-login after registration (except admin)
+                    if ($role !== 'admin') {
+                        $_SESSION['user_id'] = $uid;
+                        $_SESSION['name'] = $name;
+                        $_SESSION['email'] = $email;
+                        $_SESSION['role'] = $role;
+                        $_SESSION['avatar'] = null;
+                        redirectByRole();
+                    }
+                    $success = 'Account created! Contact an admin to activate your admin account.';
                 } else {
                     $error = 'Registration failed. Please try again.';
                 }
@@ -60,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="css/auth.css">
+<link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
 <div class="auth-container">
@@ -96,15 +111,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <i class="fa-solid fa-user-graduate"></i>
                         <span>Student</span>
                     </label>
-                    <label class="role-tab">
+                    <label class="role-tab <?= ($_POST['role'] ?? 'student') === 'teacher' ? 'active-tab' : '' ?>">
                         <input type="radio" name="role" value="teacher" <?= ($_POST['role'] ?? '') === 'teacher' ? 'checked' : '' ?>>
                         <i class="fa-solid fa-chalkboard-user"></i>
                         <span>Teacher</span>
-                    </label>
-                    <label class="role-tab">
-                        <input type="radio" name="role" value="admin" <?= ($_POST['role'] ?? '') === 'admin' ? 'checked' : '' ?>>
-                        <i class="fa-solid fa-shield-halved"></i>
-                        <span>Admin</span>
                     </label>
                 </div>
 
@@ -149,6 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
 
             <p class="switch-auth">Already have an account? <a href="login.php">Sign In</a></p>
+            <p class="switch-auth" style="margin-top: 5px;">Registering as a Parent? <a href="parent_register.php">Click Here</a></p>
         </div>
     </div>
 </div>

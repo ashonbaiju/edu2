@@ -4,14 +4,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===== Sidebar Toggle (mobile) =====
     const toggle = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('sidebar');
-    if (toggle && sidebar) {
-        toggle.addEventListener('click', () => sidebar.classList.toggle('open'));
-        document.addEventListener('click', (e) => {
-            if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
-                sidebar.classList.remove('open');
-            }
-        });
+    const overlay = document.getElementById('sidebarOverlay');
+
+    function openSidebar() {
+        if (sidebar) sidebar.classList.add('open');
+        if (overlay) overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
     }
+    function closeSidebar() {
+        if (sidebar) sidebar.classList.remove('open');
+        if (overlay) overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    if (toggle) toggle.addEventListener('click', () => {
+        sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+    });
+    if (overlay) overlay.addEventListener('click', closeSidebar);
+
+    // Auto-close sidebar when clicking a nav link (mobile)
+    document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 1024) closeSidebar();
+        });
+    });
+
+    // Close sidebar on outside click (for non-overlay areas)
+    document.addEventListener('click', (e) => {
+        if (sidebar && toggle && window.innerWidth <= 1024) {
+            if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
+                closeSidebar();
+            }
+        }
+    });
 
     // ===== Dropdowns =====
     document.addEventListener('click', (e) => {
@@ -73,6 +98,9 @@ function toggleDropdown(id) {
 
 function openModal(id) {
     const modal = document.getElementById(id);
+    // #region agent log
+    fetch('http://127.0.0.1:7618/ingest/76244e8b-7950-4ede-b496-488f1a48fab6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'76efa7'},body:JSON.stringify({sessionId:'76efa7',location:'dashboard.js:openModal',message:'openModal',data:{id,modalFound:!!modal},timestamp:Date.now(),hypothesisId:'H2',runId:'post-bind-null-date-fix'})}).catch(()=>{});
+    // #endregion
     if (modal) { modal.classList.add('open'); document.body.style.overflow = 'hidden'; }
 }
 
@@ -105,6 +133,8 @@ function escapeHtml(text) {
     div.appendChild(document.createTextNode(text));
     return div.innerHTML;
 }
+
+// Global Dashboard Functions
 
 // Simple search filter for tables
 (function() {

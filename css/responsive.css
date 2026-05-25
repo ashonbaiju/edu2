@@ -1,0 +1,496 @@
+/* ═══════════════════════════════════════════════════════════════
+   EduSys Responsive CSS — Mobile-First Responsive Overhaul
+   Works with existing neumorphic design. No redesign.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar Overlay Backdrop ── */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(2px);
+    z-index: 99;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* ── Touch-Friendly Global Defaults ── */
+@media (pointer: coarse) {
+    .nav-link { min-height: 44px; }
+    .btn, .btn-sm { min-height: 44px; }
+    .form-control, .neu-input { min-height: 44px; font-size: 16px !important; /* Prevent iOS zoom */ }
+    select.form-control { min-height: 44px; }
+    .icon-btn { min-width: 44px; min-height: 44px; }
+}
+
+/* ════════════════════════════════════════════
+   BREAKPOINT: Laptop / Small Desktop ≤1200px
+   ════════════════════════════════════════════ */
+@media (max-width: 1200px) {
+    :root { --sidebar-width: 220px; }
+    .page-content { padding: 24px; }
+    .stats-grid { gap: 16px; }
+    .charts-grid { gap: 16px; }
+    .hero-strip { padding: 22px 26px; }
+    .hero-strip h2 { font-size: 1.3rem; }
+    .stat-value { font-size: 1.7rem; }
+}
+
+/* ════════════════════════════════════════════
+   BREAKPOINT: Tablet ≤1024px
+   — Sidebar collapses, hamburger visible
+   ════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+    /* Sidebar → offscreen overlay */
+    .sidebar {
+        transform: translateX(-100%);
+        width: 280px;
+        box-shadow: 8px 0 30px rgba(0,0,0,0.15);
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    /* Show hamburger */
+    .sidebar-toggle {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        padding: 8px;
+        background: transparent;
+        border: none;
+        color: var(--text-primary);
+        cursor: pointer;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Main removes sidebar margin */
+    .main-layout {
+        margin-left: 0 !important;
+    }
+
+    /* Topnav adjustments */
+    .topnav {
+        padding: 0 20px;
+        gap: 12px;
+    }
+    .topnav-search {
+        max-width: 300px;
+    }
+
+    /* Profile btn: hide text on tablets */
+    .profile-info {
+        display: none;
+    }
+    .profile-btn i.fa-chevron-down {
+        display: none;
+    }
+
+    /* Page content */
+    .page-content { padding: 20px; }
+    .page-header h1 { font-size: 1.35rem; }
+
+    /* Stats cards */
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+    }
+    .stat-card { padding: 18px 20px; }
+    .stat-value { font-size: 1.6rem; }
+
+    /* Charts grid */
+    .charts-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    /* Form grid → 2 columns still fits */
+    .form-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    /* Table: ensure horizontal scroll */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    th, td { padding: 12px 14px; white-space: nowrap; }
+
+    /* Hero strip */
+    .hero-strip { padding: 20px 22px; }
+    .hero-strip h2 { font-size: 1.2rem; }
+    .hero-strip-icon { font-size: 3rem; }
+
+    /* Modals */
+    .modal { width: 95%; max-width: 500px; padding: 24px; }
+
+    /* Notification dropdown */
+    .notif-menu { min-width: 280px; right: -50px; }
+}
+
+/* ════════════════════════════════════════════
+   BREAKPOINT: Large Phone / Small Tablet ≤768px
+   — Single column everything
+   ════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    .page-content { padding: 16px; }
+
+    /* Topnav: compact */
+    .topnav {
+        height: 60px;
+        padding: 0 12px;
+        gap: 8px;
+    }
+
+    /* Hide search on mobile — use full-width after toggle */
+    .topnav-search {
+        display: none;
+    }
+
+    /* Profile button: just avatar */
+    .profile-btn {
+        padding: 4px;
+        box-shadow: none;
+        background: transparent;
+    }
+    .profile-btn img { width: 34px; height: 34px; }
+    .profile-info { display: none; }
+    .profile-btn i.fa-chevron-down { display: none; }
+
+    /* Page header */
+    .page-header {
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .page-header h1 { font-size: 1.2rem; }
+    .page-header p { font-size: 0.82rem; }
+    .page-actions { width: 100%; }
+    .page-actions .btn { flex: 1; justify-content: center; text-align: center; }
+
+    /* Stats → 2 columns */
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .stat-card {
+        padding: 16px;
+        border-radius: 16px;
+        gap: 8px;
+    }
+    .stat-icon { width: 40px; height: 40px; font-size: 1rem; }
+    .stat-value { font-size: 1.4rem; }
+    .stat-label { font-size: 0.76rem; }
+    .stat-change { font-size: 0.68rem; padding: 2px 6px; }
+
+    /* Charts → single column */
+    .charts-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+    .chart-card {
+        padding: 18px;
+        border-radius: 16px;
+    }
+    .chart-title { font-size: 0.88rem; margin-bottom: 14px; }
+
+    /* Tables → scrollable + compact */
+    .table-card { border-radius: 16px; margin-bottom: 18px; }
+    .table-header {
+        padding: 16px 18px;
+        gap: 8px;
+    }
+    .table-header h3 { font-size: 0.92rem; }
+    th, td { padding: 10px 12px; font-size: 0.8rem; }
+
+    /* Forms */
+    .form-card { padding: 20px; border-radius: 16px; }
+    .form-grid { grid-template-columns: 1fr; gap: 14px; }
+    .form-group label { font-size: 0.78rem; }
+    .form-control { padding: 10px 14px; font-size: 0.85rem; }
+
+    /* Buttons */
+    .btn { padding: 10px 16px; font-size: 0.82rem; }
+    .btn-sm { padding: 8px 12px; font-size: 0.76rem; }
+
+    /* Hero strip → stacked */
+    .hero-strip {
+        flex-direction: column;
+        text-align: center;
+        padding: 18px 16px;
+        border-radius: 16px;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .hero-strip h2 { font-size: 1.1rem; }
+    .hero-strip p { font-size: 0.82rem; }
+    .hero-strip-icon { font-size: 2.5rem; }
+
+    /* Modals */
+    .modal {
+        width: 96%;
+        padding: 20px;
+        border-radius: 20px;
+        max-height: 85vh;
+    }
+    .modal-header h3 { font-size: 1.05rem; }
+
+    /* Alerts compact */
+    .alert { padding: 10px 14px; font-size: 0.82rem; border-radius: 10px; }
+
+    /* Badges */
+    .badge-pill { padding: 3px 8px; font-size: 0.68rem; }
+
+    /* Notification & Dropdown */
+    .dropdown-menu {
+        position: fixed;
+        right: 10px;
+        left: 10px;
+        top: 70px;
+        min-width: unset;
+        width: auto;
+        border-radius: 16px;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+    .notif-menu {
+        min-width: unset;
+        right: 10px;
+        left: 10px;
+    }
+
+    /* Sidebar → full overlay on phones */
+    .sidebar {
+        width: 280px;
+    }
+
+    /* Avatar sizes */
+    .avatar-lg { width: 50px; height: 50px; }
+
+    /* Progress bar */
+    .progress-bar-wrap { height: 6px; }
+}
+
+/* ════════════════════════════════════════════
+   BREAKPOINT: Small Phone ≤480px
+   — Ultra compact
+   ════════════════════════════════════════════ */
+@media (max-width: 480px) {
+    .page-content { padding: 12px; }
+
+    /* Topnav */
+    .topnav { height: 56px; padding: 0 10px; }
+    .icon-btn { width: 38px; height: 38px; font-size: 0.9rem; }
+    .icon-btn .badge { min-width: 14px; height: 14px; font-size: 0.55rem; }
+
+    /* Stats → single column for very small screens */
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    .stat-card {
+        padding: 14px;
+        border-radius: 14px;
+    }
+    .stat-value { font-size: 1.2rem; }
+    .stat-label { font-size: 0.72rem; }
+    .stat-icon { width: 36px; height: 36px; font-size: 0.9rem; border-radius: 10px; }
+
+    /* Chart cards */
+    .chart-card { padding: 14px; border-radius: 14px; }
+    .chart-title { font-size: 0.82rem; flex-wrap: wrap; gap: 6px; }
+
+    /* Tables → card-like on very small screens */
+    .table-card { border-radius: 14px; }
+    .table-header { padding: 14px; }
+    .table-header h3 { font-size: 0.85rem; }
+    th, td { padding: 8px 10px; font-size: 0.75rem; }
+
+    /* Forms */
+    .form-card { padding: 16px; }
+    .form-control { padding: 10px 12px; border-radius: 10px; }
+
+    /* Buttons → full width stacked */
+    .page-actions { flex-direction: column; }
+    .page-actions .btn { width: 100%; }
+
+    /* Hero */
+    .hero-strip { padding: 14px 12px; border-radius: 14px; }
+    .hero-strip h2 { font-size: 1rem; }
+    .hero-strip p { font-size: 0.78rem; }
+    .hero-strip-icon { display: none; }
+
+    /* Page header */
+    .page-header h1 { font-size: 1.1rem; }
+
+    /* Modal takes full width */
+    .modal { width: 98%; padding: 16px; border-radius: 16px; }
+    .modal-header h3 { font-size: 0.95rem; }
+    .modal-footer { flex-direction: column; }
+    .modal-footer .btn { width: 100%; }
+
+    /* Dropdown fixed to screen */
+    .dropdown-menu {
+        right: 6px;
+        left: 6px;
+        top: 60px;
+    }
+
+    /* Sidebar */
+    .sidebar { width: 260px; }
+    .sidebar-brand { padding: 18px 16px 14px; font-size: 1.2rem; }
+    .sidebar-brand i { font-size: 1.3rem; }
+    .nav-link { padding: 10px 12px; font-size: 0.82rem; }
+    .nav-section-label { font-size: 0.62rem; padding: 10px 12px 4px; }
+}
+
+/* ════════════════════════════════════════════
+   AUTH PAGES RESPONSIVE (Login / Register)
+   ════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    .auth-container {
+        grid-template-columns: 1fr !important;
+        min-height: 100vh;
+    }
+    .auth-left {
+        padding: 30px 24px;
+        min-height: auto;
+    }
+    .auth-left h2 { font-size: 1.5rem; }
+    .auth-left p { font-size: 0.88rem; }
+    .auth-illustration { display: none; }
+    .auth-right { padding: 24px 20px; }
+    .auth-form-box { max-width: 100%; }
+    .auth-form-box h2 { font-size: 1.5rem; }
+    .form-row { grid-template-columns: 1fr !important; }
+    .role-tabs { gap: 8px; }
+    .role-tab { padding: 10px 6px; }
+    .role-tab i { font-size: 1.1rem; }
+    .role-tab span { font-size: 0.7rem; }
+    .demo-creds { font-size: 0.72rem; }
+}
+
+@media (max-width: 480px) {
+    .auth-left { padding: 24px 18px; }
+    .auth-left h2 { font-size: 1.3rem; }
+    .brand h1 { font-size: 1.5rem; }
+    .brand i { font-size: 1.6rem; }
+    .auth-right { padding: 20px 14px; }
+    .auth-form-box h2 { font-size: 1.3rem; }
+    .auth-form-box .sub { font-size: 0.85rem; margin-bottom: 20px; }
+    .neu-input { padding: 12px 14px; }
+    .btn-primary { padding: 14px; font-size: 0.92rem; }
+    .role-tabs { gap: 6px; flex-wrap: wrap; }
+    .role-tab { min-width: calc(50% - 6px); }
+}
+
+/* ════════════════════════════════════════════
+   LIVE CLASS ROOM RESPONSIVE
+   ════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    /* Live class layout → vertical stack */
+    .live-class-container,
+    .lc-main-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+    }
+
+    .lc-video-area,
+    .video-container {
+        width: 100% !important;
+        height: 50vh !important;
+        min-height: 250px !important;
+    }
+
+    .lc-chat-panel,
+    .chat-panel {
+        width: 100% !important;
+        height: 300px !important;
+        max-height: 50vh !important;
+    }
+
+    /* Controls → wrap */
+    .lc-controls,
+    .controls-bar {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        padding: 12px !important;
+        justify-content: center !important;
+    }
+    .lc-controls button,
+    .controls-bar button {
+        min-width: 44px !important;
+        min-height: 44px !important;
+    }
+}
+
+/* ════════════════════════════════════════════
+   PARENT PORTAL SPECIFIC
+   ════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    /* Child switcher: wrap on small screens */
+    [style*="display:flex"][style*="Viewing for:"] {
+        flex-wrap: wrap;
+    }
+}
+
+/* ════════════════════════════════════════════
+   INLINE STYLES OVERRIDE FOR KNOWN PATTERNS
+   (Many pages use inline flex/grid layouts)
+   ════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    /* Force wrapping on flex containers with inline styles */
+    [style*="display:flex"] {
+        flex-wrap: wrap !important;
+    }
+
+    /* Force grid to single column for inline grids */
+    [style*="grid-template-columns:repeat(auto-fill"] {
+        grid-template-columns: 1fr 1fr !important;
+    }
+}
+
+@media (max-width: 480px) {
+    [style*="grid-template-columns:repeat(auto-fill"] {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ════════════════════════════════════════════
+   SCROLLBAR STYLING (thin on mobile)
+   ════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    .table-responsive::-webkit-scrollbar { height: 4px; }
+    .table-responsive::-webkit-scrollbar-track { background: transparent; }
+    .table-responsive::-webkit-scrollbar-thumb { background: var(--shadow-dark); border-radius: 4px; }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+}
+
+/* ════════════════════════════════════════════
+   SAFE AREA (for iPhone notch / nav bar)
+   ════════════════════════════════════════════ */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .sidebar { padding-bottom: env(safe-area-inset-bottom); }
+    .page-content { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+}
+
+/* ════════════════════════════════════════════
+   PRINT STYLES (optional but professional)
+   ════════════════════════════════════════════ */
+@media print {
+    .sidebar, .topnav, .sidebar-toggle, .sidebar-overlay,
+    .page-actions, .hero-strip-icon, .btn { display: none !important; }
+    .main-layout { margin-left: 0 !important; }
+    .page-content { padding: 0 !important; }
+    body { background: white !important; }
+    .stat-card, .chart-card, .table-card { box-shadow: none !important; border: 1px solid #ddd; }
+}

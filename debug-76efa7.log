@@ -1,0 +1,16 @@
+{"sessionId":"76efa7","hypothesisId":"H0","location":"teacher\/exams.php:entry","message":"php_entry","data":{"method":"GET","post_action":null},"timestamp":1775622346319,"runId":"post-bind-null-date-fix"}
+{"sessionId":"76efa7","hypothesisId":"H1","location":"teacher\/exams.php:bootstrap","message":"teacher_row","data":{"has_teacher":true,"tid":"3"},"timestamp":1775622346329,"runId":"post-bind-null-date-fix"}
+{"sessionId":"76efa7","hypothesisId":"H0","location":"teacher\/exams.php:entry","message":"php_entry","data":{"method":"GET","post_action":null},"timestamp":1775622347104,"runId":"post-bind-null-date-fix"}
+{"sessionId":"76efa7","hypothesisId":"H1","location":"teacher\/exams.php:bootstrap","message":"teacher_row","data":{"has_teacher":true,"tid":"3"},"timestamp":1775622347110,"runId":"post-bind-null-date-fix"}
+{"sessionId":"76efa7","hypothesisId":"H0","location":"teacher\/exams.php:entry","message":"php_entry","data":{"method":"GET","post_action":null},"timestamp":1775622347273,"runId":"post-bind-null-date-fix"}
+{"sessionId":"76efa7","hypothesisId":"H1","location":"teacher\/exams.php:bootstrap","message":"teacher_row","data":{"has_teacher":true,"tid":"3"},"timestamp":1775622347278,"runId":"post-bind-null-date-fix"}
+{"sessionId":"76efa7","hypothesisId":"H0","location":"teacher\/exams.php:entry","message":"php_entry","data":{"method":"GET","post_action":null},"timestamp":1775622347424,"runId":"post-bind-null-date-fix"}
+{"sessionId":"76efa7","hypothesisId":"H1","location":"teacher\/exams.php:bootstrap","message":"teacher_row","data":{"has_teacher":true,"tid":"3"},"timestamp":1775622347432,"runId":"post-bind-null-date-fix"}
+{"sessionId":"76efa7","hypothesisId":"H0","location":"teacher\/exams.php:entry","message":"php_entry","data":{"method":"GET","post_action":null},"timestamp":1775622357224,"runId":"post-bind-null-date-fix"}
+{"sessionId":"76efa7","hypothesisId":"H1","location":"teacher\/exams.php:bootstrap","message":"teacher_row","data":{"has_teacher":true,"tid":"3"},"timestamp":1775622357242,"runId":"post-bind-null-date-fix"}
+{"sessionId":"76efa7","hypothesisId":"H0","location":"teacher\/exams.php:entry","message":"php_entry","data":{"method":"GET","post_action":null},"timestamp":1775622413673,"runId":"post-bind-null-date-fix"}
+{"sessionId":"76efa7","hypothesisId":"H1","location":"teacher\/exams.php:bootstrap","message":"teacher_row","data":{"has_teacher":true,"tid":"3"},"timestamp":1775622413695,"runId":"post-bind-null-date-fix"}
+{"sessionId":"76efa7","hypothesisId":"H0","location":"teacher\/exams.php:entry","message":"php_entry","data":{"method":"GET","post_action":null},"timestamp":1775623345212,"runId":"post-bind-null-date-fix"}
+{"sessionId":"76efa7","hypothesisId":"H1","location":"teacher\/exams.php:bootstrap","message":"teacher_row","data":{"has_teacher":true,"tid":"3"},"timestamp":1775623345234,"runId":"post-bind-null-date-fix"}
+{"sessionId":"76efa7","hypothesisId":"H0","location":"teacher\/exams.php:entry","message":"php_entry","data":{"method":"GET","post_action":null},"timestamp":1775623687331,"runId":"post-bind-null-date-fix"}
+{"sessionId":"76efa7","hypothesisId":"H1","location":"teacher\/exams.php:bootstrap","message":"teacher_row","data":{"has_teacher":true,"tid":"3"},"timestamp":1775623687353,"runId":"post-bind-null-date-fix"}

@@ -1,5 +1,7 @@
 <?php
-require_once '../includes/auth.php';
+require_once __DIR__ . '/../includes/auth.php';
+session_start();
+session_unset();
 session_destroy();
-header('Location: /project/login.php');
+header('Location: ../login.php');
 exit;

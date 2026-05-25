@@ -1,0 +1,11 @@
+Field	Type	Null	Key	Default	Extra
+id	int(11)	NO	PRI	NULL	auto_increment
+title	varchar(255)	NO		NULL	
+subject_id	int(11)	YES		NULL	
+batch_id	int(11)	YES		NULL	
+exam_date	date	YES		NULL	
+total_marks	int(11)	YES		100	
+pass_marks	int(11)	YES		40	
+exam_type	varchar(50)	YES		unit_test	
+created_by	int(11)	YES		NULL	
+created_at	timestamp	NO		current_timestamp()	

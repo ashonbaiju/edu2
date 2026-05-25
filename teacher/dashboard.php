@@ -3,20 +3,27 @@ require_once '../includes/header.php';
 requireRole('teacher');
 
 // Get teacher profile
-$teacher = $conn->query("SELECT t.*, u.name, u.email FROM teachers t JOIN users u ON t.user_id=u.id WHERE t.user_id={$_SESSION['user_id']}")->fetch_assoc();
-$tid = $teacher['id'];
+$res = $conn->query("SELECT t.*, u.name, u.email FROM teachers t JOIN users u ON t.user_id=u.id WHERE t.user_id={$_SESSION['user_id']}");
+$teacher = $res ? $res->fetch_assoc() : null;
+$tid = $teacher['id'] ?? 0;
 
-// Stats
-$my_batches = $conn->query("SELECT COUNT(*) as cnt FROM batches WHERE teacher_id=$tid AND status='active'")->fetch_assoc()['cnt'];
-$my_students = $conn->query("SELECT COUNT(DISTINCT bs.student_id) as cnt FROM batch_students bs JOIN batches b ON bs.batch_id=b.id WHERE b.teacher_id=$tid")->fetch_assoc()['cnt'];
-$pending_doubts = $conn->query("SELECT COUNT(*) as cnt FROM doubts d JOIN subjects s ON d.subject_id=s.id JOIN batches b ON b.subject_id=s.id WHERE b.teacher_id=$tid AND d.status='open'")->fetch_assoc()['cnt'];
-$pending_salary = $conn->query("SELECT COUNT(*) as cnt FROM salary WHERE teacher_id=$tid AND status='pending'")->fetch_assoc()['cnt'];
+// Stats (Only run if teacher ID is valid)
+if ($tid > 0) {
+    $my_batches = $conn->query("SELECT COUNT(*) as cnt FROM batches WHERE teacher_id=$tid AND status='active'")->fetch_assoc()['cnt'] ?? 0;
+    $my_students = $conn->query("SELECT COUNT(DISTINCT bs.student_id) as cnt FROM batch_students bs JOIN batches b ON bs.batch_id=b.id WHERE b.teacher_id=$tid")->fetch_assoc()['cnt'] ?? 0;
+    $pending_doubts = $conn->query("SELECT COUNT(*) as cnt FROM doubts d JOIN subjects s ON d.subject_id=s.id JOIN batches b ON b.subject_id=s.id WHERE b.teacher_id=$tid AND d.status='open'")->fetch_assoc()['cnt'] ?? 0;
+    $pending_salary = $conn->query("SELECT COUNT(*) as cnt FROM salary WHERE teacher_id=$tid AND status='pending'")->fetch_assoc()['cnt'] ?? 0;
+    $pending_requests = $conn->query("SELECT COUNT(*) as cnt FROM admission_requests ar JOIN batches b ON ar.batch_id=b.id WHERE b.teacher_id=$tid AND ar.status='pending'")->fetch_assoc()['cnt'] ?? 0;
 
-// Upcoming live classes
-$upcoming = $conn->query("SELECT lc.*, b.name as batch_name FROM live_classes lc LEFT JOIN batches b ON lc.batch_id=b.id WHERE lc.teacher_id=$tid AND lc.status IN ('scheduled','live') ORDER BY lc.scheduled_at ASC LIMIT 5");
+    // Upcoming live classes
+    $upcoming = $conn->query("SELECT lc.*, b.name as batch_name FROM live_classes lc LEFT JOIN batches b ON lc.batch_id=b.id WHERE lc.teacher_id=$tid AND lc.status IN ('scheduled','live') ORDER BY lc.scheduled_at ASC LIMIT 5");
 
-// My batches list
-$batches = $conn->query("SELECT b.*, sub.name as subject_name, (SELECT COUNT(*) FROM batch_students bs WHERE bs.batch_id=b.id) as enrolled FROM batches b LEFT JOIN subjects sub ON b.subject_id=sub.id WHERE b.teacher_id=$tid ORDER BY b.id DESC LIMIT 5");
+    // My batches list
+    $batches = $conn->query("SELECT b.*, sub.name as subject_name, (SELECT COUNT(*) FROM batch_students bs WHERE bs.batch_id=b.id) as enrolled FROM batches b LEFT JOIN subjects sub ON b.subject_id=sub.id WHERE b.teacher_id=$tid ORDER BY b.id DESC LIMIT 5");
+} else {
+    $my_batches = $my_students = $pending_doubts = $pending_salary = $pending_requests = 0;
+    $upcoming = $batches = null;
+}
 ?>
 <div class="hero-strip">
     <div>
@@ -31,10 +38,11 @@ $batches = $conn->query("SELECT b.*, sub.name as subject_name, (SELECT COUNT(*) 
 <?php endif; ?>
 
 <div class="stats-grid">
-    <div class="stat-card"><div class="stat-card-header"><div class="stat-icon purple"><i class="fa-solid fa-layer-group"></i></div></div><div class="stat-value"><?= $my_batches ?></div><div class="stat-label">Active Batches</div></div>
-    <div class="stat-card"><div class="stat-card-header"><div class="stat-icon green"><i class="fa-solid fa-users"></i></div></div><div class="stat-value"><?= $my_students ?></div><div class="stat-label">My Students</div></div>
-    <div class="stat-card"><div class="stat-card-header"><div class="stat-icon orange"><i class="fa-solid fa-question-circle"></i></div><?php if ($pending_doubts > 0): ?><span class="stat-change down"><?= $pending_doubts ?> new</span><?php endif; ?></div><div class="stat-value"><?= $pending_doubts ?></div><div class="stat-label">Pending Doubts</div></div>
-    <div class="stat-card"><div class="stat-card-header"><div class="stat-icon blue"><i class="fa-solid fa-star"></i></div></div><div class="stat-value"><?= number_format($teacher['rating'] ?? 0, 1) ?></div><div class="stat-label">My Rating</div></div>
+    <div class="stat-card" onclick="location.href='batches.php'" style="cursor:pointer;"><div class="stat-card-header"><div class="stat-icon purple"><i class="fa-solid fa-layer-group"></i></div></div><div class="stat-value"><?= $my_batches ?></div><div class="stat-label">Active Batches</div></div>
+    <div class="stat-card" onclick="location.href='students.php'" style="cursor:pointer;"><div class="stat-card-header"><div class="stat-icon green"><i class="fa-solid fa-users"></i></div></div><div class="stat-value"><?= $my_students ?></div><div class="stat-label">My Students</div></div>
+    <div class="stat-card" onclick="location.href='doubts.php'" style="cursor:pointer;"><div class="stat-card-header"><div class="stat-icon orange"><i class="fa-solid fa-question-circle"></i></div><?php if ($pending_doubts > 0): ?><span class="stat-change down"><?= $pending_doubts ?> new</span><?php endif; ?></div><div class="stat-value"><?= $pending_doubts ?></div><div class="stat-label">Pending Doubts</div></div>
+    <div class="stat-card" onclick="location.href='requests.php'" style="cursor:pointer;"><div class="stat-card-header"><div class="stat-icon red"><i class="fa-solid fa-user-plus"></i></div><?php if ($pending_requests > 0): ?><span class="stat-change down"><?= $pending_requests ?> new</span><?php endif; ?></div><div class="stat-value"><?= $pending_requests ?></div><div class="stat-label">Requests</div></div>
+    <div class="stat-card" onclick="location.href='feedback.php'" style="cursor:pointer;"><div class="stat-card-header"><div class="stat-icon blue"><i class="fa-solid fa-star"></i></div></div><div class="stat-value"><?= number_format($teacher['rating'] ?? 0, 1) ?></div><div class="stat-label">My Rating</div></div>
 </div>
 
 <div class="charts-grid">
@@ -85,7 +93,9 @@ $batches = $conn->query("SELECT b.*, sub.name as subject_name, (SELECT COUNT(*) 
         <a href="/project/teacher/exams.php" class="btn btn-outline btn-sm"><i class="fa-solid fa-file-alt"></i> Create Exam</a>
         <a href="/project/teacher/materials.php" class="btn btn-outline btn-sm"><i class="fa-solid fa-upload"></i> Upload Material</a>
         <a href="/project/teacher/doubts.php" class="btn btn-outline btn-sm"><i class="fa-solid fa-question-circle"></i> Answer Doubts (<?= $pending_doubts ?>)</a>
+        <a href="/project/teacher/requests.php" class="btn btn-outline btn-sm"><i class="fa-solid fa-user-plus"></i> Enrollment Requests (<?= $pending_requests ?>)</a>
         <a href="/project/teacher/messages.php" class="btn btn-outline btn-sm"><i class="fa-solid fa-comment-dots"></i> Messages</a>
+        <a href="/project/teacher/aptitude-reports.php" class="btn btn-outline btn-sm"><i class="fa-solid fa-brain"></i> Aptitude Reports</a>
     </div>
 </div>
 

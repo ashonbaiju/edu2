@@ -1,0 +1,12 @@
+Field	Type	Null	Key	Default	Extra
+id	int(11)	NO	PRI	NULL	auto_increment
+exam_id	int(11)	NO		NULL	
+question	text	NO		NULL	
+option_a	varchar(300)	YES		NULL	
+option_b	varchar(300)	YES		NULL	
+option_c	varchar(300)	YES		NULL	
+option_d	varchar(300)	YES		NULL	
+correct_answer	text	YES		NULL	
+marks	int(11)	YES		1	
+created_at	timestamp	NO		current_timestamp()	
+type	enum('mcq','text')	YES		mcq	

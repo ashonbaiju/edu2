@@ -27,7 +27,7 @@ $notices = $conn->query("SELECT * FROM notices ORDER BY is_pinned DESC, created_
 
 <!-- Stats Row -->
 <div class="stats-grid">
-    <div class="stat-card">
+    <div class="stat-card" onclick="location.href='students.php'" style="cursor:pointer;">
         <div class="stat-card-header">
             <div class="stat-icon purple"><i class="fa-solid fa-users"></i></div>
             <span class="stat-change up">+3 today</span>
@@ -35,7 +35,7 @@ $notices = $conn->query("SELECT * FROM notices ORDER BY is_pinned DESC, created_
         <div class="stat-value"><?= $total_students ?></div>
         <div class="stat-label">Total Students</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" onclick="location.href='teachers.php'" style="cursor:pointer;">
         <div class="stat-card-header">
             <div class="stat-icon red"><i class="fa-solid fa-chalkboard-user"></i></div>
             <?php if ($pending_teachers > 0): ?>
@@ -45,14 +45,14 @@ $notices = $conn->query("SELECT * FROM notices ORDER BY is_pinned DESC, created_
         <div class="stat-value"><?= $total_teachers ?></div>
         <div class="stat-label">Active Teachers</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" onclick="location.href='batches.php'" style="cursor:pointer;">
         <div class="stat-card-header">
             <div class="stat-icon green"><i class="fa-solid fa-layer-group"></i></div>
         </div>
         <div class="stat-value"><?= $total_batches ?></div>
         <div class="stat-label">Active Batches</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" onclick="location.href='fees.php'" style="cursor:pointer;">
         <div class="stat-card-header">
             <div class="stat-icon orange"><i class="fa-solid fa-file-invoice-dollar"></i></div>
             <?php if ($pending_fees > 0): ?>
@@ -62,14 +62,14 @@ $notices = $conn->query("SELECT * FROM notices ORDER BY is_pinned DESC, created_
         <div class="stat-value"><?= $pending_fees ?></div>
         <div class="stat-label">Unpaid Fees</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" onclick="location.href='complaints.php'" style="cursor:pointer;">
         <div class="stat-card-header">
             <div class="stat-icon blue"><i class="fa-solid fa-triangle-exclamation"></i></div>
         </div>
         <div class="stat-value"><?= $open_complaints ?></div>
         <div class="stat-label">Open Complaints</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" onclick="location.href='verify_teacher.php'" style="cursor:pointer;">
         <div class="stat-card-header">
             <div class="stat-icon red"><i class="fa-solid fa-user-clock"></i></div>
         </div>
@@ -89,6 +89,7 @@ $notices = $conn->query("SELECT * FROM notices ORDER BY is_pinned DESC, created_
             <a href="/project/admin/notices.php?modal=add" class="btn btn-outline btn-sm"><i class="fa-solid fa-bullhorn"></i> Post Notice</a>
             <a href="/project/admin/fees.php" class="btn btn-outline btn-sm"><i class="fa-solid fa-dollar-sign"></i> Manage Fees</a>
             <a href="/project/admin/exams.php?modal=add" class="btn btn-outline btn-sm"><i class="fa-solid fa-file-alt"></i> Create Exam</a>
+            <a href="/project/admin/aptitude-reports.php" class="btn btn-outline btn-sm"><i class="fa-solid fa-brain"></i> Aptitude Reports</a>
         </div>
     </div>
 

@@ -2,17 +2,26 @@
 require_once '../includes/header.php';
 requireRole('admin');
 $msg = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $action = $_POST['action'];
+    $fee_id = (int)($_POST['fee_id'] ?? 0);
+
     if ($action === 'add') {
         $sid = (int)$_POST['student_id']; $amount = floatval($_POST['amount']); $desc = $_POST['description']; $due = $_POST['due_date'];
         $stmt = $conn->prepare("INSERT INTO fees (student_id,amount,description,due_date) VALUES (?,?,?,?)");
         $stmt->bind_param('idss', $sid, $amount, $desc, $due); $stmt->execute();
         $msg = '<div class="alert alert-success">Fee record added!</div>';
     } elseif ($action === 'mark_paid') {
-        $fid = (int)$_POST['fee_id'];
-        $conn->query("UPDATE fees SET status='paid', paid_date=CURDATE() WHERE id=$fid");
-        $msg = '<div class="alert alert-success">Marked as paid!</div>';
+        $stmt = $conn->prepare("UPDATE fees SET status='paid', paid_date=CURRENT_DATE WHERE id=?");
+        $stmt->bind_param('i', $fee_id);
+        $stmt->execute();
+        $msg = '<div class="alert alert-success"><i class="fa-solid fa-check"></i> Fee marked as paid!</div>';
+    } elseif ($action === 'undo_payment') {
+        $stmt = $conn->prepare("UPDATE fees SET status='unpaid', paid_date=NULL WHERE id=?");
+        $stmt->bind_param('i', $fee_id);
+        $stmt->execute();
+        $msg = '<div class="alert alert-warning"><i class="fa-solid fa-rotate-left"></i> Payment undone! Status is now unpaid.</div>';
     }
 }
 
@@ -44,7 +53,13 @@ $total_pending = $conn->query("SELECT SUM(amount) as total FROM fees WHERE statu
                     <td><?= $f['due_date'] ? date('M d, Y', strtotime($f['due_date'])) : '-' ?></td>
                     <td><?= $f['paid_date'] ? date('M d, Y', strtotime($f['paid_date'])) : '-' ?></td>
                     <td><span class="badge-pill <?= $f['status']==='paid'?'badge-success':($f['status']==='overdue'?'badge-danger':'badge-warning') ?>"><?= ucfirst($f['status']) ?></span></td>
-                    <td><?php if ($f['status'] !== 'paid'): ?><form method="POST"><input type="hidden" name="action" value="mark_paid"><input type="hidden" name="fee_id" value="<?= $f['id'] ?>"><button class="btn btn-primary btn-sm"><i class="fa-solid fa-check"></i> Mark Paid</button></form><?php else: ?><span style="color:var(--text-secondary);font-size:0.8rem;">Paid</span><?php endif; ?></td>
+                    <td>
+                        <?php if ($f['status'] !== 'paid'): ?>
+                            <form method="POST" style="display:inline-block;"><input type="hidden" name="action" value="mark_paid"><input type="hidden" name="fee_id" value="<?= $f['id'] ?>"><button class="btn btn-primary btn-sm"><i class="fa-solid fa-check"></i> Mark Paid</button></form>
+                        <?php else: ?>
+                            <form method="POST" style="display:inline-block;" onsubmit="return confirm('Are you sure you want to undo this payment?');"><input type="hidden" name="action" value="undo_payment"><input type="hidden" name="fee_id" value="<?= $f['id'] ?>"><button class="btn btn-warning btn-sm"><i class="fa-solid fa-rotate-left"></i> Undo</button></form>
+                        <?php endif; ?>
+                    </td>
                 </tr>
                 <?php endwhile; ?><?php endif; ?>
             </tbody>

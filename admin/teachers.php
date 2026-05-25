@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$teachers = $conn->query("SELECT t.id, t.user_id, u.name, u.email, u.status, t.qualification, t.specialization, t.phone, t.experience_years, t.salary, t.approval_status, t.rating, t.joined_date FROM teachers t JOIN users u ON t.user_id=u.id ORDER BY t.id DESC");
+$teachers = $conn->query("SELECT t.id, t.user_id, u.name, u.email, u.status, t.qualification, t.specialization, t.phone, t.experience_years, t.salary, t.approval_status, t.verification_status, t.rating, t.joined_date FROM teachers t JOIN users u ON t.user_id=u.id ORDER BY t.id DESC");
 ?>
 <div class="page-header">
     <div><h1>Teacher Management</h1><p>Review and manage teacher profiles</p></div>
@@ -32,7 +32,7 @@ $teachers = $conn->query("SELECT t.id, t.user_id, u.name, u.email, u.status, t.q
     <div class="table-header"><h3>All Teachers (<?= $teachers->num_rows ?>)</h3></div>
     <div class="table-responsive">
         <table>
-            <thead><tr><th>Teacher</th><th>Specialization</th><th>Experience</th><th>Salary</th><th>Rating</th><th>Approval</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Teacher</th><th>Specialization</th><th>Experience</th><th>Salary</th><th>Verification</th><th>Approval</th><th>Actions</th></tr></thead>
             <tbody>
                 <?php if ($teachers->num_rows === 0): ?>
                 <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary);">No teachers registered yet.</td></tr>
@@ -43,7 +43,18 @@ $teachers = $conn->query("SELECT t.id, t.user_id, u.name, u.email, u.status, t.q
                     <td><?= htmlspecialchars($t['specialization'] ?? '-') ?></td>
                     <td><?= $t['experience_years'] ?> yrs</td>
                     <td>₹<?= number_format($t['salary'], 0) ?></td>
-                    <td><i class="fa-solid fa-star" style="color:#FF9800;"></i> <?= number_format($t['rating'], 1) ?></td>
+                    <td>
+                        <?php if ($t['verification_status'] === 'submitted'): ?>
+                        <span class="badge-pill badge-warning">Review Pending</span>
+                        <?php elseif ($t['verification_status'] === 'verified'): ?>
+                        <span class="badge-pill badge-success">Verified</span>
+                        <?php else: ?>
+                        <span class="badge-pill badge-danger"><?= ucfirst(str_replace('_', ' ', $t['verification_status'])) ?></span>
+                        <?php endif; ?>
+                        <div style="margin-top:5px;">
+                            <a href="verify_teacher.php?id=<?= $t['id'] ?>" style="font-size:0.75rem; color:var(--primary); text-decoration:none;"><i class="fa-solid fa-eye"></i> View Docs</a>
+                        </div>
+                    </td>
                     <td>
                         <span class="badge-pill <?= $t['approval_status']==='approved'?'badge-success':($t['approval_status']==='rejected'?'badge-danger':'badge-warning') ?>">
                             <?= ucfirst($t['approval_status']) ?>
