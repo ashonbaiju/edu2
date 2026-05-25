@@ -18,11 +18,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $uid = $_SESSION['user_id'];
         
         $stmt = $conn->prepare("INSERT INTO notices (title, content, target_role, batch_id, created_by, is_pinned) VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param('ssisii', $title, $content, $target, $batch_id, $uid, $pinned);
+        $stmt->bind_param('sssiii', $title, $content, $target, $batch_id, $uid, $pinned);
         
         if ($stmt->execute()) {
             header("Location: notices.php?success=1");
             exit;
+        } else {
+            $msg = '<div class="alert alert-error">Error posting notice: ' . htmlspecialchars($stmt->error) . '</div>';
         }
     } elseif ($action === 'delete') {
         $nid = (int)$_POST['notice_id'];
@@ -86,4 +88,4 @@ require_once '../includes/header.php';
     </div>
 </div>
 <script><?php if (isset($_GET['modal'])): ?>window.addEventListener('DOMContentLoaded', () => openModal('addNoticeModal'));<?php endif; ?></script>
-<?php require_once '../includes/header.php'; ?>
+<?php require_once '../includes/footer.php'; ?>

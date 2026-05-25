@@ -1,9 +1,12 @@
 <?php
 session_start();
 
-// Ensure BASE_URL is defined (usually comes from config/db.php)
+// Load config first to get the correct BASE_URL definition
+require_once __DIR__ . '/../config/db.php';
+
+// Ensure BASE_URL is defined (fallback just in case)
 if (!defined('BASE_URL')) {
-    define('BASE_URL', '/project/'); // Fallback for local
+    define('BASE_URL', '/project/');
 }
 
 function isLoggedIn() {

@@ -18,7 +18,7 @@ $all_sql = "
 CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(150) NOT NULL, email VARCHAR(150) UNIQUE NOT NULL, password VARCHAR(255) NOT NULL, role ENUM('admin','teacher','student') NOT NULL DEFAULT 'student', avatar VARCHAR(255), status ENUM('active','inactive','pending') DEFAULT 'active', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS subjects (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100) NOT NULL, code VARCHAR(20) UNIQUE, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS students (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, roll_number VARCHAR(50) UNIQUE, date_of_birth DATE, gender ENUM('male','female','other'), phone VARCHAR(20), address TEXT, parent_name VARCHAR(150), parent_phone VARCHAR(20), grade VARCHAR(20), admission_date DATE, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
-CREATE TABLE IF NOT EXISTS teachers (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, qualification VARCHAR(255), specialization VARCHAR(255), phone VARCHAR(20), address TEXT, gender ENUM('male','female','other'), experience_years INT DEFAULT 0, salary DECIMAL(10,2) DEFAULT 0, document_path VARCHAR(255), approval_status ENUM('pending','approved','rejected') DEFAULT 'approved', joined_date DATE, rating DECIMAL(3,2) DEFAULT 0, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS teachers (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, qualification VARCHAR(255), specialization VARCHAR(255), phone VARCHAR(20), address TEXT, gender ENUM('male','female','other'), experience_years INT DEFAULT 0, salary DECIMAL(10,2) DEFAULT 0, document_path VARCHAR(255), approval_status ENUM('pending','approved','rejected') DEFAULT 'approved', verification_status ENUM('pending_submission', 'submitted', 'verified', 'rejected') DEFAULT 'pending_submission', aadhar_number VARCHAR(20), aadhar_file VARCHAR(255), certificate_file VARCHAR(255), joined_date DATE, rating DECIMAL(3,2) DEFAULT 0, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
 CREATE TABLE IF NOT EXISTS batches (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(150) NOT NULL, teacher_id INT, subject_id INT, grade VARCHAR(20), schedule TEXT, max_students INT DEFAULT 30, status ENUM('active','inactive') DEFAULT 'active', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (teacher_id) REFERENCES teachers(id), FOREIGN KEY (subject_id) REFERENCES subjects(id));
 CREATE TABLE IF NOT EXISTS batch_students (id INT AUTO_INCREMENT PRIMARY KEY, batch_id INT NOT NULL, student_id INT NOT NULL, enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (batch_id) REFERENCES batches(id) ON DELETE CASCADE, FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE);
 CREATE TABLE IF NOT EXISTS attendance (id INT AUTO_INCREMENT PRIMARY KEY, student_id INT NOT NULL, batch_id INT, date DATE NOT NULL, status ENUM('present','absent','late') DEFAULT 'present', marked_by INT, remarks TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE);
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS feedback (id INT AUTO_INCREMENT PRIMARY KEY, user_id 
 CREATE TABLE IF NOT EXISTS study_materials (id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(200) NOT NULL, description TEXT, file_path VARCHAR(255), subject_id INT, uploaded_by INT, type ENUM('pdf','video','image','link') DEFAULT 'pdf', download_count INT DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS doubts (id INT AUTO_INCREMENT PRIMARY KEY, student_id INT NOT NULL, subject_id INT, title VARCHAR(200), description TEXT, status ENUM('open','answered','closed') DEFAULT 'open', answered_by INT, answer TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (student_id) REFERENCES students(id));
 CREATE TABLE IF NOT EXISTS live_classes (id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(200), batch_id INT, teacher_id INT, room_id VARCHAR(100) UNIQUE, scheduled_at DATETIME, duration_minutes INT DEFAULT 60, status ENUM('scheduled','live','ended') DEFAULT 'scheduled', recording_url VARCHAR(255), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE IF NOT EXISTS notices (id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(200) NOT NULL, content TEXT, target_role ENUM('all','student','teacher','admin') DEFAULT 'all', created_by INT, is_pinned TINYINT(1) DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS notices (id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(200) NOT NULL, content TEXT, target_role ENUM('all','student','teacher','admin') DEFAULT 'all', batch_id INT, created_by INT, is_pinned TINYINT(1) DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (batch_id) REFERENCES batches(id) ON DELETE CASCADE);
 CREATE TABLE IF NOT EXISTS packages (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(200) NOT NULL, description TEXT, price DECIMAL(10,2), duration_months INT, type ENUM('all_subjects','specific_subject','extracurricular') DEFAULT 'all_subjects', teacher_id INT, subject_ids TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS transactions (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, amount DECIMAL(10,2) NOT NULL, type ENUM('fee_payment','salary','refund','other') DEFAULT 'fee_payment', description VARCHAR(255), reference_id INT, status ENUM('success','pending','failed') DEFAULT 'success', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
 CREATE TABLE IF NOT EXISTS admission_requests (id INT AUTO_INCREMENT PRIMARY KEY, student_id INT NOT NULL, batch_id INT NOT NULL, status ENUM('pending','approved','rejected') DEFAULT 'pending', admin_remarks TEXT, requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
@@ -50,6 +50,34 @@ foreach ($queries as $q) {
         $errors[] = $conn->error;
     }
 }
+
+// Auto-run all SQL patch files to guarantee all tables exist (important for InfinityFree)
+$sql_files = [
+    'database_updates.sql',
+    'database_final.sql',
+    'live_class_migration.sql',
+    'parent_migration.sql',
+    'fix_exams_results.sql',
+    'setup_exams.sql',
+    'fix_infinityfree.sql'
+];
+
+foreach ($sql_files as $file) {
+    if (file_exists($file)) {
+        $content = file_get_contents($file);
+        // Strip out commands that break on shared hosting
+        $content = preg_replace('/^\s*USE\s+.*?;/im', '', $content);
+        $content = preg_replace('/^\s*CREATE DATABASE\s+.*?;/im', '', $content);
+        
+        $file_queries = array_filter(array_map('trim', explode(';', $content)));
+        foreach ($file_queries as $q) {
+            if ($q) { 
+                $conn->query($q); // Suppress errors for patches as they may contain already existing tables
+            }
+        }
+    }
+}
+
 $conn->query("SET foreign_key_checks = 1");
 
 // Fresh demo data

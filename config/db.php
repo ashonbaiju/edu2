@@ -25,9 +25,12 @@ if ($is_localhost) {
     define('DB_NAME', 'if0_42014853_alow');     // Your MySQL database name
 }
 // 2. Base URL Management (Fixes path issues on hosting)
-// Both local and hosting use the /project/ subfolder based on user's htdocs structure.
 if (!defined('BASE_URL')) {
-    define('BASE_URL', '/project/');
+    if ($is_localhost) {
+        define('BASE_URL', '/edu/project/'); // For your local C:\xampp\htdocs\edu\project
+    } else {
+        define('BASE_URL', '/'); // For InfinityFree (files are uploaded to the main root)
+    }
 }
 
 // 3. Establish Connection
