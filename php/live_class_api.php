@@ -76,6 +76,9 @@ switch ($action) {
     // LEAVE CLASS (student)
     // ----------------------------------------------------------------
     case 'leave':
+        // Delete from WebRTC peers list immediately
+        $conn->query("DELETE FROM webrtc_peers WHERE class_id=$class_id AND user_id=$uid");
+        
         if ($role === 'student') {
             $sid = getStudentId($conn, $uid);
             if ($sid) {
@@ -99,6 +102,10 @@ switch ($action) {
     // END CLASS (teacher only)
     // ----------------------------------------------------------------
     case 'end_class':
+        // Clean up WebRTC records instantly
+        $conn->query("DELETE FROM webrtc_peers WHERE class_id=$class_id");
+        $conn->query("DELETE FROM webrtc_signals WHERE class_id=$class_id");
+
         $tid = getTeacherId($conn, $uid);
         $lc = getClass($conn, $class_id);
         if ($lc && $lc['teacher_id'] == $tid) {
@@ -237,6 +244,113 @@ switch ($action) {
         if (!$doubt_id || !$reply) { echo json_encode(['success' => false]); exit; }
         $conn->query("INSERT INTO live_doubt_replies (doubt_id, user_id, reply) VALUES ($doubt_id, $uid, '$reply')");
         echo json_encode(['success' => true]);
+        break;
+
+    // ----------------------------------------------------------------
+    // WebRTC: PING & REGISTER PEER
+    // ----------------------------------------------------------------
+    case 'webrtc_ping':
+        if (!$class_id) { echo json_encode(['success' => false, 'msg' => 'Class ID required']); exit; }
+        
+        $name = $conn->real_escape_string($_SESSION['name'] ?? 'User');
+        $role = $conn->real_escape_string($_SESSION['role'] ?? 'student');
+        
+        // Register/update active presence
+        $conn->query("
+            INSERT INTO webrtc_peers (class_id, user_id, user_name, user_role, last_ping)
+            VALUES ($class_id, $uid, '$name', '$role', NOW())
+            ON DUPLICATE KEY UPDATE last_ping=NOW(), user_name='$name', user_role='$role'
+        ");
+        
+        // Prune stale peers (no ping in last 12 seconds)
+        $conn->query("DELETE FROM webrtc_peers WHERE last_ping < DATE_SUB(NOW(), INTERVAL 12 SECOND)");
+        
+        // Fetch all other active peers in this room
+        $peers_res = $conn->query("
+            SELECT user_id, user_name, user_role
+            FROM webrtc_peers
+            WHERE class_id=$class_id AND user_id != $uid
+        ");
+        
+        $active_peers = [];
+        if ($peers_res) {
+            while ($row = $peers_res->fetch_assoc()) {
+                $active_peers[] = [
+                    'user_id' => (int)$row['user_id'],
+                    'user_name' => $row['user_name'],
+                    'user_role' => $row['user_role']
+                ];
+            }
+        }
+        
+        echo json_encode(['success' => true, 'peers' => $active_peers]);
+        break;
+
+    // ----------------------------------------------------------------
+    // WebRTC: SEND SIGNAL (Offer, Answer, ICE Candidate)
+    // ----------------------------------------------------------------
+    case 'webrtc_send_signal':
+        $to_user = (int)($_POST['to_user'] ?? 0);
+        $signal_type = trim($_POST['signal_type'] ?? '');
+        $signal_data = trim($_POST['signal_data'] ?? '');
+        
+        if (!$class_id || !$to_user || !$signal_type || !$signal_data) {
+            echo json_encode(['success' => false, 'msg' => 'Invalid signaling parameters']);
+            exit;
+        }
+        
+        $signal_type = $conn->real_escape_string($signal_type);
+        $signal_data = $conn->real_escape_string($signal_data);
+        
+        $conn->query("
+            INSERT INTO webrtc_signals (class_id, from_user, to_user, signal_type, signal_data, is_read)
+            VALUES ($class_id, $uid, $to_user, '$signal_type', '$signal_data', 0)
+        ");
+        
+        echo json_encode(['success' => true]);
+        break;
+
+    // ----------------------------------------------------------------
+    // WebRTC: GET SIGNALS (Polling incoming signals)
+    // ----------------------------------------------------------------
+    case 'webrtc_get_signals':
+        if (!$class_id) { echo json_encode(['success' => false, 'msg' => 'Class ID required']); exit; }
+        
+        // Fetch unread signals for current user
+        $signals_res = $conn->query("
+            SELECT id, from_user, signal_type, signal_data, created_at
+            FROM webrtc_signals
+            WHERE class_id=$class_id AND to_user=$uid AND is_read=0
+            ORDER BY id ASC
+        ");
+        
+        $signals = [];
+        $ids = [];
+        if ($signals_res) {
+            while ($row = $signals_res->fetch_assoc()) {
+                $signals[] = [
+                    'id' => (int)$row['id'],
+                    'from_user' => (int)$row['from_user'],
+                    'signal_type' => $row['signal_type'],
+                    'signal_data' => $row['signal_data'],
+                    'created_at' => $row['created_at']
+                ];
+                $ids[] = (int)$row['id'];
+            }
+        }
+        
+        // Mark as read
+        if (!empty($ids)) {
+            $ids_str = implode(',', $ids);
+            $conn->query("UPDATE webrtc_signals SET is_read=1 WHERE id IN ($ids_str)");
+        }
+        
+        // Perform occasional signal cleanup (older than 30 mins)
+        if (rand(1, 100) === 50) {
+            $conn->query("DELETE FROM webrtc_signals WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 MINUTE)");
+        }
+        
+        echo json_encode(['success' => true, 'signals' => $signals]);
         break;
 
     default:

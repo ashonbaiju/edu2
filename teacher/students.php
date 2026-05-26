@@ -2,7 +2,7 @@
 require_once '../includes/header.php';
 requireRole('teacher');
 $teacher = $conn->query("SELECT t.id FROM teachers t WHERE t.user_id={$_SESSION['user_id']}")->fetch_assoc();
-$tid = $teacher['id'];
+$tid = (int)($teacher['id'] ?? 0);
 
 $students = $conn->query("
     SELECT DISTINCT s.id, u.name, u.email, s.roll_number, s.grade,
@@ -23,13 +23,13 @@ $students = $conn->query("
 </div>
 
 <div class="table-card">
-    <div class="table-header"><h3>Students (<?= $students->num_rows ?>)</h3></div>
+    <div class="table-header"><h3>Students (<?= $students ? $students->num_rows : 0 ?>)</h3></div>
     <div class="table-responsive">
         <table>
             <thead><tr><th>Student</th><th>Roll No.</th><th>Grade</th><th>Batch</th><th>Attendance</th><th>Submissions</th><th>Action</th></tr></thead>
             <tbody>
-                <?php if ($students->num_rows === 0): ?>
-                <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-secondary);">No students enrolled in your batches yet.</td></tr>
+                <?php if (!$students || $students->num_rows === 0): ?>
+                <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-secondary);">No students enrolled in your batches yet.</td></tr>
                 <?php else: ?>
                 <?php while ($s = $students->fetch_assoc()):
                     $pct = $s['att_total'] > 0 ? round(($s['att_present']/$s['att_total'])*100) : 0;

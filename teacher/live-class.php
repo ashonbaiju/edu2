@@ -150,41 +150,156 @@ $classes = $conn->query("
 // Show attendance for selected class
 $view_id = (int)($_GET['view_attendance'] ?? 0);
 if ($view_id) {
-    $lc_info = $conn->query("SELECT title FROM live_classes WHERE id=$view_id AND teacher_id=$tid")->fetch_assoc();
+    $lc_info = $conn->query("
+        SELECT title, batch_id, duration_minutes 
+        FROM live_classes 
+        WHERE id=$view_id AND teacher_id=$tid
+    ")->fetch_assoc();
+    
     if ($lc_info) {
-        $attn = $conn->query("
-            SELECT la.*, u.name as student_name, la.join_time, la.leave_time,
-                   la.duration, la.percentage
-            FROM live_attendance la
-            JOIN students s ON la.student_id=s.id
-            JOIN users u ON s.user_id=u.id
-            WHERE la.class_id=$view_id
-            ORDER BY la.join_time ASC
-        ");
+        $batch_id = (int)$lc_info['batch_id'];
+        $students = [];
+        $present_count = 0;
+        $absent_count = 0;
+        $total_duration = 0;
+        
+        if ($batch_id > 0) {
+            // Fetch expected students in the batch and match against their optional room attendance
+            $attn_res = $conn->query("
+                SELECT 
+                    s.id as student_id,
+                    u.name as student_name,
+                    la.join_time,
+                    la.leave_time,
+                    la.duration,
+                    la.percentage
+                FROM batch_students bs
+                JOIN students s ON bs.student_id = s.id
+                JOIN users u ON s.user_id = u.id
+                LEFT JOIN live_attendance la ON la.student_id = s.id AND la.class_id = $view_id
+                WHERE bs.batch_id = $batch_id
+                ORDER BY la.join_time DESC, u.name ASC
+            ");
+            while ($row = $attn_res->fetch_assoc()) {
+                if ($row['join_time']) {
+                    $row['status'] = 'Present';
+                    $present_count++;
+                    $total_duration += (int)$row['duration'];
+                } else {
+                    $row['status'] = 'Absent';
+                    $absent_count++;
+                }
+                $students[] = $row;
+            }
+            $total_expected = count($students);
+        } else {
+            // General class: only shows present students
+            $attn_res = $conn->query("
+                SELECT 
+                    s.id as student_id,
+                    u.name as student_name,
+                    la.join_time,
+                    la.leave_time,
+                    la.duration,
+                    la.percentage
+                FROM live_attendance la
+                JOIN students s ON la.student_id = s.id
+                JOIN users u ON s.user_id = u.id
+                WHERE la.class_id = $view_id
+                ORDER BY u.name ASC
+            ");
+            while ($row = $attn_res->fetch_assoc()) {
+                $row['status'] = 'Present';
+                $present_count++;
+                $total_duration += (int)$row['duration'];
+                $students[] = $row;
+            }
+            $total_expected = $present_count;
+        }
+        
+        // Calculate average watch time for present students
+        $avg_dur_min = $present_count > 0 ? round(($total_duration / $present_count) / 60, 1) : 0;
         ?>
+
+<!-- Metrics Summary Cards -->
+<div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 20px; margin-bottom: 20px;">
+    <div class="card" style="padding: 16px; background: var(--surface); border-radius: 12px; box-shadow: var(--neu-out); border: 1px solid rgba(100, 100, 100, 0.15); display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 0.78rem; color: var(--text-sec); font-weight: 600;">Total Enrolled</div>
+        <div style="font-size: 1.8rem; font-weight: 700; color: var(--secondary);"><?= $total_expected ?></div>
+        <div style="font-size: 0.72rem; color: var(--text-sec);">Students expected in batch</div>
+    </div>
+    <div class="card" style="padding: 16px; background: var(--surface); border-radius: 12px; box-shadow: var(--neu-out); border: 1px solid rgba(100, 100, 100, 0.15); display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 0.78rem; color: var(--text-sec); font-weight: 600;">Present Students</div>
+        <div style="font-size: 1.8rem; font-weight: 700; color: var(--success);">
+            <?= $present_count ?> <span style="font-size: 1rem; font-weight: 500; color: var(--text-sec);">(<?= $total_expected > 0 ? round(($present_count/$total_expected)*100) : 0 ?>%)</span>
+        </div>
+        <div style="font-size: 0.72rem; color: var(--text-sec);">Joined the virtual room</div>
+    </div>
+    <div class="card" style="padding: 16px; background: var(--surface); border-radius: 12px; box-shadow: var(--neu-out); border: 1px solid rgba(100, 100, 100, 0.15); display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 0.78rem; color: var(--text-sec); font-weight: 600;">Absent Students</div>
+        <div style="font-size: 1.8rem; font-weight: 700; color: <?= $absent_count > 0 ? 'var(--danger)' : 'var(--text-sec)' ?>;">
+            <?= $absent_count ?> <span style="font-size: 1rem; font-weight: 500; color: var(--text-sec);">(<?= $total_expected > 0 ? round(($absent_count/$total_expected)*100) : 0 ?>%)</span>
+        </div>
+        <div style="font-size: 0.72rem; color: var(--text-sec);">Missed the session</div>
+    </div>
+    <div class="card" style="padding: 16px; background: var(--surface); border-radius: 12px; box-shadow: var(--neu-out); border: 1px solid rgba(100, 100, 100, 0.15); display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 0.78rem; color: var(--text-sec); font-weight: 600;">Avg Watch Time</div>
+        <div style="font-size: 1.8rem; font-weight: 700; color: var(--primary);"><?= $avg_dur_min ?> min</div>
+        <div style="font-size: 0.72rem; color: var(--text-sec);">Out of <?= $lc_info['duration_minutes'] ?> min scheduled</div>
+    </div>
+</div>
+
 <div class="table-card" style="margin-top:20px;">
-    <div class="table-header">
-        <h3>Attendance — <?= htmlspecialchars($lc_info['title']) ?></h3>
+    <div class="table-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px; flex-wrap: wrap; gap: 12px;">
+        <h3 style="margin: 0;">Attendance — <?= htmlspecialchars($lc_info['title']) ?></h3>
+        <a href="<?= BASE_URL ?>teacher/export_attendance.php?class_id=<?= $view_id ?>" class="btn btn-outline" style="border-color: var(--success); color: var(--success); background: none; font-size: 0.85rem; padding: 8px 16px; display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-file-excel"></i> Export to Excel
+        </a>
     </div>
     <div class="table-responsive">
         <table>
-            <thead><tr><th>Student</th><th>Join Time</th><th>Leave Time</th><th>Duration</th><th>Attendance %</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>Student Name</th>
+                    <th>Status</th>
+                    <th>Join Time</th>
+                    <th>Leave Time</th>
+                    <th>Duration Watched</th>
+                    <th>Attendance Coverage</th>
+                </tr>
+            </thead>
             <tbody>
-            <?php if ($attn->num_rows === 0): ?>
-            <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-secondary);">No attendance records.</td></tr>
-            <?php else: while ($a = $attn->fetch_assoc()):
-                $dur_min = $a['duration'] > 0 ? round($a['duration']/60) . ' min' : '—';
-                $pct     = $a['percentage'];
+            <?php if (empty($students)): ?>
+            <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-secondary);">No attendance records found.</td></tr>
+            <?php else: foreach ($students as $s):
+                $dur = (int)$s['duration'];
+                if ($dur > 0) {
+                    $m = floor($dur / 60);
+                    $sec = $dur % 60;
+                    $dur_str = $m > 0 ? "{$m}m {$sec}s" : "{$sec}s";
+                } else {
+                    $dur_str = $s['status'] === 'Present' ? '0s' : '—';
+                }
+                
+                $pct = $s['percentage'];
+                $status_class = $s['status'] === 'Present' ? 'badge-success' : 'badge-danger';
                 $pct_class = $pct >= 75 ? 'badge-success' : ($pct >= 50 ? 'badge-warning' : 'badge-danger');
             ?>
-            <tr>
-                <td><?= htmlspecialchars($a['student_name']) ?></td>
-                <td><?= $a['join_time'] ? date('h:i A', strtotime($a['join_time'])) : '—' ?></td>
-                <td><?= $a['leave_time'] ? date('h:i A', strtotime($a['leave_time'])) : 'Still in' ?></td>
-                <td><?= $dur_min ?></td>
-                <td><span class="badge-pill <?= $pct_class ?>"><?= $pct ?>%</span></td>
+            <tr style="opacity: <?= $s['status'] === 'Absent' ? '0.75' : '1' ?>;">
+                <td><strong><?= htmlspecialchars($s['student_name']) ?></strong></td>
+                <td><span class="badge-pill <?= $status_class ?>"><?= $s['status'] ?></span></td>
+                <td><?= $s['join_time'] ? date('h:i A', strtotime($s['join_time'])) : '—' ?></td>
+                <td><?= $s['leave_time'] ? date('h:i A', strtotime($s['leave_time'])) : ($s['status'] === 'Present' ? '<span class="badge-pill badge-info">Still in</span>' : '—') ?></td>
+                <td><?= $dur_str ?></td>
+                <td>
+                    <?php if ($s['status'] === 'Present'): ?>
+                    <span class="badge-pill <?= $pct_class ?>"><?= $pct ?>%</span>
+                    <?php else: ?>
+                    <span style="color: var(--text-sec);">0%</span>
+                    <?php endif; ?>
+                </td>
             </tr>
-            <?php endwhile; endif; ?>
+            <?php endforeach; endif; ?>
             </tbody>
         </table>
     </div>
