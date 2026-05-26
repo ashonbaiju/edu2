@@ -78,6 +78,7 @@ $api_url      = BASE_URL . 'php/live_class_api.php';
     <title><?= $class_title ?> — EduSys Live Class</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src='https://meet.jit.si/external_api.js'></script>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -383,60 +384,21 @@ $api_url      = BASE_URL . 'php/live_class_api.php';
 <!-- ═══════════════ ROOM LAYOUT ═══════════════ -->
 <div class="room-layout">
 
-    <!-- ── VIDEO AREA ── -->
+    <!-- ── VIDEO AREA (Jitsi Meet) ── -->
     <div class="video-area">
-        <div class="video-grid" id="videoGrid">
-            <!-- Local video -->
-            <div class="video-tile" id="localTile">
-                <video id="localVideo" autoplay muted playsinline></video>
-                <div class="tile-name"><?= htmlspecialchars($name) ?> (You)</div>
-                <div class="tile-muted" id="localMutedIcon" style="display:none;"><i class="fa-solid fa-microphone-slash"></i></div>
-            </div>
-            <!-- Remote videos injected here by JS -->
-        </div>
-
-        <!-- Screen share overlay -->
-        <video id="screenShareVideo" autoplay playsinline></video>
-
         <?php if (!$class_ended): ?>
-        <!-- Controls -->
-        <div class="controls-bar">
+        <div id="jitsi-container" style="flex:1;width:100%;height:100%;"></div>
+        <div class="controls-bar" style="justify-content:center;">
             <div class="ctrl-btn-label">
-                <button class="ctrl-btn active" id="micBtn" onclick="toggleMic()" title="Mute/Unmute">
-                    <i class="fa-solid fa-microphone" id="micIcon"></i>
-                </button>
-                <span>Mic</span>
-            </div>
-            <div class="ctrl-btn-label">
-                <button class="ctrl-btn active" id="camBtn" onclick="toggleCamera()" title="Camera On/Off">
-                    <i class="fa-solid fa-video" id="camIcon"></i>
-                </button>
-                <span>Camera</span>
-            </div>
-            <div class="ctrl-btn-label">
-                <button class="ctrl-btn" id="screenBtn" onclick="toggleScreen()" title="Share Screen">
-                    <i class="fa-solid fa-desktop"></i>
-                </button>
-                <span>Screen</span>
-            </div>
-            <?php if ($is_teacher): ?>
-            <div class="ctrl-btn-label">
-                <button class="ctrl-btn" id="recBtn" onclick="toggleRecording()" title="Record Class">
-                    <i class="fa-solid fa-circle" style="color:#f44336;"></i>
-                </button>
-                <span id="recLabel">Record</span>
-            </div>
-            <?php endif; ?>
-            <div class="ctrl-btn-label">
-                <button class="ctrl-btn danger" onclick="leaveClass()" title="Leave">
+                <button class="ctrl-btn danger" onclick="leaveClass()" title="<?= $is_teacher ? 'End Class' : 'Leave' ?>">
                     <i class="fa-solid fa-phone-slash"></i>
                 </button>
                 <span><?= $is_teacher ? 'End' : 'Leave' ?></span>
             </div>
         </div>
         <?php else: ?>
-        <div class="controls-bar" style="justify-content:center;">
-            <span style="color:rgba(255,255,255,.6);font-size:0.9rem;"><i class="fa-solid fa-clock"></i> This class has ended.</span>
+        <div class="controls-bar" style="justify-content:center;flex:1;flex-direction:column;gap:16px;">
+            <span style="color:rgba(255,255,255,.6);font-size:1rem;"><i class="fa-solid fa-clock"></i> This class has ended.</span>
             <button class="btn-room btn-primary" onclick="window.location.href='<?= BASE_URL . ($is_teacher ? 'teacher/live-class.php' : 'student/classes.php') ?>'">
                 <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
             </button>
@@ -504,210 +466,72 @@ $api_url      = BASE_URL . 'php/live_class_api.php';
 
 <script>
 // ─────────────── GLOBALS ───────────────
-const CLASS_ID   = <?= $class_id ?>;
-const IS_TEACHER = <?= $is_teacher ? 'true' : 'false' ?>;
-const MY_NAME    = <?= json_encode($name) ?>;
-const MY_ROLE    = <?= json_encode($role) ?>;
-const API        = <?= json_encode($api_url) ?>;
+const CLASS_ID    = <?= $class_id ?>;
+const IS_TEACHER  = <?= $is_teacher ? 'true' : 'false' ?>;
+const MY_NAME     = <?= json_encode($name) ?>;
+const MY_ROLE     = <?= json_encode($role) ?>;
+const API         = <?= json_encode($api_url) ?>;
 const CLASS_ENDED = <?= $class_ended ? 'true' : 'false' ?>;
+const ROOM_ID     = <?= json_encode('edusys-' . preg_replace('/[^a-z0-9]/i', '', $lc['room_id'])) ?>;
 
-// ─────────────── STATE ───────────────
-let localStream = null;
-let isMicOn     = true;
-let isCamOn     = true;
-let isScreenOn  = false;
-let screenStream = null;
-let mediaRecorder = null;
-let recordedChunks = [];
-let isRecording = false;
-let chatLastId  = 0;
-let timerInterval = null;
-let timerSeconds = 0;
-let participantInterval = null;
-let chatInterval = null;
+let jitsiApi = null;
 
-// ─────────────── INIT ───────────────
-document.addEventListener('DOMContentLoaded', async () => {
-    if (!CLASS_ENDED) {
-        await startLocalMedia();
+// ─────────────── JITSI INIT ───────────────
+if (!CLASS_ENDED) {
+    document.addEventListener('DOMContentLoaded', () => {
+        const domain = 'meet.jit.si';
+        const options = {
+            roomName: ROOM_ID,
+            width: '100%',
+            height: '100%',
+            parentNode: document.getElementById('jitsi-container'),
+            userInfo: { displayName: MY_NAME },
+            configOverwrite: {
+                startWithAudioMuted: false,
+                startWithVideoMuted: false,
+                prejoinPageEnabled: false,
+                disableDeepLinking: true,
+                toolbarButtons: IS_TEACHER
+                    ? ['microphone','camera','closedcaptions','desktop','fullscreen','fodeviceselection','hangup','chat','recording','raisehand','videoquality','filmstrip','invite','feedback','stats','shortcuts','tileview','select-background','download','help','mute-everyone','security']
+                    : ['microphone','camera','desktop','fullscreen','fodeviceselection','hangup','chat','raisehand','videoquality','filmstrip','tileview','select-background','download','help'],
+            },
+            interfaceConfigOverwrite: {
+                SHOW_JITSI_WATERMARK: false,
+                SHOW_WATERMARK_FOR_GUESTS: false,
+                SHOW_BRAND_WATERMARK: false,
+                DEFAULT_REMOTE_DISPLAY_NAME: 'Student',
+                TOOLBAR_ALWAYS_VISIBLE: false,
+                DISABLE_JOIN_LEAVE_NOTIFICATIONS: false,
+            }
+        };
+        jitsiApi = new JitsiMeetExternalAPI(domain, options);
+
+        // Notify server when joining
         notifyJoin();
         startTimer();
         chatInterval = setInterval(pollChat, 3000);
         participantInterval = setInterval(pollParticipants, 8000);
         pollChat();
         pollParticipants();
-    } else {
-        // Still load chat & doubts for review
+
+        // Listen for Jitsi hangup
+        jitsiApi.addEventListener('readyToClose', () => leaveClass(true));
+    });
+} else {
+    document.addEventListener('DOMContentLoaded', () => {
         pollChat();
         loadDoubts();
-    }
-});
-
-// ─────────────── MEDIA ───────────────
-async function startLocalMedia() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("Your browser does not support WebRTC media features. Please use a modern browser like Chrome or Firefox.");
-        return;
-    }
-
-    try {
-        // Try Video + Audio
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        document.getElementById('localVideo').srcObject = localStream;
-        console.log("Media: Camera and Microphone started.");
-    } catch (e) {
-        console.warn("Camera failed, trying microphone only:", e);
-        try {
-            // Fallback to Audio only
-            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            document.getElementById('localVideo').srcObject = localStream;
-            showNoCam();
-            showToast("Camera not found. Using microphone only.", "info");
-        } catch(e2) {
-            showNoCam();
-            console.error("Mic failing too:", e2);
-            showToast("No media devices found. You can still participate via chat.", "warning");
-        }
-    }
+    });
 }
 
-function showNoCam() {
-    const tile = document.getElementById('localTile');
-    const v = document.getElementById('localVideo');
-    if (v) v.style.display = 'none'; // Hide video tag, but keep audio stream attached if any
-    
-    // Avoid duplicate placeholders
-    if (tile.querySelector('.avatar-placeholder')) return;
-    
-    const ph = document.createElement('div');
-    ph.className = 'avatar-placeholder';
-    ph.textContent = MY_NAME.charAt(0).toUpperCase();
-    tile.insertBefore(ph, tile.firstChild);
-}
+// ─────────────── STATE ───────────────
+let chatLastId  = 0;
+let timerInterval = null;
+let timerSeconds = 0;
+let participantInterval = null;
+let chatInterval = null;
 
-function toggleMic() {
-    isMicOn = !isMicOn;
-    if (localStream) {
-        localStream.getAudioTracks().forEach(t => t.enabled = isMicOn);
-    }
-    const btn = document.getElementById('micBtn');
-    const icon = document.getElementById('micIcon');
-    btn.classList.toggle('active', isMicOn);
-    icon.className = isMicOn ? 'fa-solid fa-microphone' : 'fa-solid fa-microphone-slash';
-    document.getElementById('localMutedIcon').style.display = isMicOn ? 'none' : 'flex';
-}
 
-function toggleCamera() {
-    if (!localStream || localStream.getVideoTracks().length === 0) {
-        showToast("No camera detected on this device.", "warning");
-        return;
-    }
-    isCamOn = !isCamOn;
-    localStream.getVideoTracks().forEach(t => t.enabled = isCamOn);
-    const btn = document.getElementById('camBtn');
-    const icon = document.getElementById('camIcon');
-    btn.classList.toggle('active', isCamOn);
-    icon.className = isCamOn ? 'fa-solid fa-video' : 'fa-solid fa-video-slash';
-}
-
-async function toggleScreen() {
-    if (isScreenOn) {
-        stopScreenShare();
-        return;
-    }
-    
-    if (!navigator.mediaDevices.getDisplayMedia) {
-        alert("Screen sharing is not supported in this browser.");
-        return;
-    }
-
-    try {
-        // Use a high-quality display stream
-        screenStream = await navigator.mediaDevices.getDisplayMedia({ 
-            video: { cursor: "always" },
-            audio: false // No need for system audio feedback loop
-        });
-        
-        const screenVideo = document.getElementById('screenShareVideo');
-        screenVideo.srcObject = screenStream;
-        screenVideo.muted = true; // MUST be muted locally to avoid echo
-        screenVideo.classList.add('active');
-        document.getElementById('screenBtn').classList.add('active');
-        isScreenOn = true;
-        
-        // Listen for user clicking "Stop Sharing" in browser UI
-        screenStream.getVideoTracks()[0].onended = () => stopScreenShare();
-        
-        showToast("Screen sharing started.", "success");
-    } catch (e) {
-        console.error("Screen Share Error:", e);
-        showToast("Could not start screen share. Make sure permissions are granted.", "danger");
-    }
-}
-
-function stopScreenShare() {
-    if (screenStream) {
-        screenStream.getTracks().forEach(t => t.stop());
-        screenStream = null;
-    }
-    const sv = document.getElementById('screenShareVideo');
-    if (sv) {
-        sv.classList.remove('active');
-        sv.srcObject = null;
-    }
-    document.getElementById('screenBtn').classList.remove('active');
-    isScreenOn = false;
-    showToast("Screen sharing stopped.", "info");
-}
-
-// ─────────────── RECORDING ───────────────
-function toggleRecording() {
-    if (isRecording) stopRecording();
-    else startRecording();
-}
-
-function startRecording() {
-    if (!localStream) { alert('No media stream to record'); return; }
-    recordedChunks = [];
-    const options = { mimeType: 'video/webm;codecs=vp9,opus' };
-    try {
-        mediaRecorder = new MediaRecorder(localStream, options);
-    } catch(e) {
-        mediaRecorder = new MediaRecorder(localStream);
-    }
-    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
-    mediaRecorder.onstop = uploadRecording;
-    mediaRecorder.start(1000);
-    isRecording = true;
-    const btn = document.getElementById('recBtn');
-    btn.classList.add('active');
-    btn.querySelector('i').style.color = 'white';
-    document.getElementById('recLabel').textContent = 'Stop REC';
-}
-
-function stopRecording() {
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-    isRecording = false;
-    const btn = document.getElementById('recBtn');
-    btn.classList.remove('active');
-    btn.querySelector('i').style.color = '#f44336';
-    document.getElementById('recLabel').textContent = 'Record';
-}
-
-async function uploadRecording() {
-    if (!recordedChunks.length) return;
-    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-    const fd = new FormData();
-    fd.append('action', 'save_recording');
-    fd.append('class_id', CLASS_ID);
-    fd.append('recording', blob, 'recording.webm');
-    try {
-        const res = await fetch(API, { method: 'POST', body: fd });
-        const data = await res.json();
-        if (data.success) showToast('Recording saved!', 'success');
-        else showToast('Recording upload failed.', 'danger');
-    } catch(e) { showToast('Upload error.', 'danger'); }
-}
 
 // ─────────────── JOIN/LEAVE ───────────────
 async function notifyJoin() {
@@ -718,15 +542,15 @@ async function notifyJoin() {
     });
 }
 
-async function leaveClass() {
-    const msg = IS_TEACHER ? 'End the class for everyone?' : 'Leave this live class?';
-    if (!confirm(msg)) return;
+async function leaveClass(fromJitsi = false) {
+    if (!fromJitsi) {
+        const msg = IS_TEACHER ? 'End the class for everyone?' : 'Leave this live class?';
+        if (!confirm(msg)) return;
+    }
     clearInterval(chatInterval);
     clearInterval(participantInterval);
     clearInterval(timerInterval);
-    if (isRecording) stopRecording();
-    if (localStream) localStream.getTracks().forEach(t => t.stop());
-    stopScreenShare();
+    if (jitsiApi) { try { jitsiApi.dispose(); } catch(e) {} }
 
     // Notify server
     const action = IS_TEACHER ? 'end_class' : 'leave';
