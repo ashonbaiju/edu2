@@ -1,0 +1,17 @@
+# Uploaded user files - do not commit to git
+uploads/avatars/*
+uploads/documents/*
+uploads/recordings/*
+uploads/assignments/*
+uploads/materials/*
+
+# Keep the folder structure
+!uploads/avatars/.gitkeep
+!uploads/documents/.gitkeep
+!uploads/recordings/.gitkeep
+!uploads/assignments/.gitkeep
+!uploads/materials/.gitkeep
+
+# Local env / temp
+test_query.php
+*.log
