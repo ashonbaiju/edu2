@@ -19,10 +19,10 @@ if ($is_localhost) {
 } else {
     // --- HOSTING (InfinityFree) SETTINGS ---
     // IMPORTANT: Update these with your actual InfinityFree MySQL details
-    define('DB_HOST', 'sql101.infinityfree.com');      // e.g., sql304.epizy.com
-    define('DB_USER', 'if0_42014853');         // e.g., epiz_34567890
-    define('DB_PASS', 'Xm6Qv6r8Ckwv');         // Your MySQL password
-    define('DB_NAME', 'if0_42014853_alow');     // Your MySQL database name
+    define('DB_HOST', 'sql312.infinityfree.com');      // e.g., sql304.epizy.com
+    define('DB_USER', 'if0_42029487');         // e.g., epiz_34567890
+    define('DB_PASS', '5TBgwZd0AJSIq');         // Your MySQL password
+    define('DB_NAME', 'if0_42029487_edusys');     // Your MySQL database name
 }
 // 2. Base URL Management (Fixes path issues on hosting)
 if (!defined('BASE_URL')) {
