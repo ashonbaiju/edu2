@@ -188,9 +188,9 @@ if (chatId) {
 
 function fetchChat() {
     if (!chatId) return;
-    const url = chatType === 'batch' ? `<?= BASE_URL ?>chat.php?batch_id=${chatId}` : `<?= BASE_URL ?>chat.php?with=${chatId}`;
+    const body = chatType === 'batch' ? `action=fetch&batch_id=${chatId}` : `action=fetch&with=${chatId}`;
     
-    fetch(url)
+    fetch('<?= BASE_URL ?>chat.php', { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'}, body })
     .then(res => res.json())
     .then(data => {
         if (data.error) return;
