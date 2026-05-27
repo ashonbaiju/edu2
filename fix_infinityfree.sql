@@ -57,3 +57,8 @@ CREATE TABLE IF NOT EXISTS webrtc_signals (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_signals_poll (to_user, is_read, class_id)
 );
+
+-- Fix messages table: add batch_id for group chat, allow NULL receiver_id
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS batch_id INT DEFAULT NULL AFTER receiver_id;
+-- Note: If 'receiver_id' is still NOT NULL, run this line separately:
+-- ALTER TABLE messages MODIFY COLUMN receiver_id INT DEFAULT NULL;

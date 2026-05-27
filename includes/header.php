@@ -112,6 +112,9 @@ if ($role === 'teacher' && $current_page !== 'verify' && $current_page !== 'logo
                     <a href="<?= BASE_URL ?>admin/notices.php"
                         class="nav-link <?= $current_page === 'notices' ? 'active' : '' ?>"><i
                             class="fa-solid fa-bullhorn"></i><span>Notices</span></a>
+                    <a href="<?= BASE_URL ?>admin/messages.php"
+                        class="nav-link <?= $current_page === 'messages' ? 'active' : '' ?>"><i
+                            class="fa-solid fa-envelope"></i><span>Messages</span></a>
                     <a href="<?= BASE_URL ?>admin/complaints.php"
                         class="nav-link <?= $current_page === 'complaints' ? 'active' : '' ?>"><i
                             class="fa-solid fa-triangle-exclamation"></i><span>Complaints</span></a>
