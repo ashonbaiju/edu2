@@ -102,6 +102,15 @@ if (empty($errors)) {
 
     $admin_uid = $conn->query("SELECT id FROM users WHERE email='admin@edusys.com'")->fetch_assoc()['id'];
     $conn->query("INSERT IGNORE INTO notices (title,content,target_role,created_by,is_pinned) VALUES ('Welcome to EduSys!','Welcome to the AI-powered tuition system.','all',$admin_uid,1),('Fee Reminder','Please pay fees before month end.','student',$admin_uid,0)");
+
+    // Create demo batch & enroll student so messaging contacts work
+    $teacher_id_tbl = $conn->query("SELECT id FROM teachers WHERE user_id=$teacher_uid")->fetch_assoc()['id'];
+    $student_id_tbl = $conn->query("SELECT id FROM students WHERE user_id=$student_uid")->fetch_assoc()['id'];
+    $conn->query("INSERT IGNORE INTO batches (name,teacher_id,subject_id,grade,status) VALUES ('Demo Batch - Mathematics',$teacher_id_tbl,1,'Grade 10','active')");
+    $demo_batch_id = $conn->insert_id;
+    if ($demo_batch_id > 0) {
+        $conn->query("INSERT IGNORE INTO batch_students (batch_id,student_id) VALUES ($demo_batch_id,$student_id_tbl)");
+    }
 }
 ?>
 <!DOCTYPE html>
