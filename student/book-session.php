@@ -94,7 +94,7 @@ $bookings = $conn->query("
                     </td>
                     <td>
                         <?php if ($b['status'] === 'approved'): ?>
-                        <a href="https://meet.jit.si/<?= $b['meeting_id'] ?>" target="_blank" class="btn btn-sm btn-primary"><i class="fa-solid fa-video"></i> Join Live</a>
+                        <a href="../session_room.php?session_id=<?= $b['id'] ?>" target="_blank" class="btn btn-sm btn-primary"><i class="fa-solid fa-video"></i> Join Live</a>
                         <?php else: ?>
                         <button class="btn btn-sm btn-outline" disabled><i class="fa-solid fa-lock"></i> Pending</button>
                         <?php endif; ?>

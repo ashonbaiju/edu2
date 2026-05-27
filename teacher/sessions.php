@@ -98,7 +98,7 @@ $bookings = $conn->query("
                             </form>
                         </div>
                         <?php elseif ($b['status'] === 'approved'): ?>
-                        <a href="https://meet.jit.si/<?= $b['meeting_id'] ?>" target="_blank" class="btn btn-sm btn-primary"><i class="fa-solid fa-video"></i> Join Live</a>
+                        <a href="../session_room.php?session_id=<?= $b['id'] ?>" target="_blank" class="btn btn-sm btn-primary"><i class="fa-solid fa-video"></i> Join Live</a>
                         <?php else: ?>
                         <span style="color:var(--text-secondary);font-size:0.85rem;">No actions</span>
                         <?php endif; ?>
