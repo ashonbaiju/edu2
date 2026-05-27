@@ -21,15 +21,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (($receiver || $batch_id) && !empty($text)) {
         if ($batch_id) {
             $stmt = $conn->prepare("INSERT INTO messages (sender_id, receiver_id, batch_id, message) VALUES (?, NULL, ?, ?)");
-            $stmt->bind_param('iis', $me, $batch_id, $text);
         } else {
             $stmt = $conn->prepare("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?,?,?)");
+        }
+        
+        if (!$stmt) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Prepare failed: ' . $conn->error]);
+            exit;
+        }
+        
+        if ($batch_id) {
+            $stmt->bind_param('iis', $me, $batch_id, $text);
+        } else {
             $stmt->bind_param('iis', $me, $receiver, $text);
         }
         
         if ($stmt->execute()) {
             header('Content-Type: application/json');
             echo json_encode(['success' => true]);
+            exit;
+        } else {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => $stmt->error]);
             exit;
         }
     }
