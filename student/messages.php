@@ -177,7 +177,7 @@ if (chatId) {
         if (!text) return;
 
         const formData = new FormData(this);
-        fetch('<?= BASE_URL ?>php/send_chat.php', { method: 'POST', body: formData })
+        fetch('<?= BASE_URL ?>send_msg.php', { method: 'POST', body: formData })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
@@ -190,7 +190,7 @@ if (chatId) {
 
 function fetchChat() {
     if (!chatId) return;
-    const url = chatType === 'batch' ? `<?= BASE_URL ?>php/get_chat.php?batch_id=${chatId}` : `<?= BASE_URL ?>php/get_chat.php?with=${chatId}`;
+    const url = chatType === 'batch' ? `<?= BASE_URL ?>get_msg.php?batch_id=${chatId}` : `<?= BASE_URL ?>get_msg.php?with=${chatId}`;
     
     fetch(url)
     .then(res => res.json())
