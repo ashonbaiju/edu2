@@ -36,7 +36,8 @@ if ($action === 'fetch' || $action === 'send') {
             } else {
                 $stmt = $conn->prepare("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?,?,?)");
             }
-            if ($stmt && $stmt->bind_param('iis', $me, $batch_id ?: $receiver, $text) && $stmt->execute()) {
+            $param2 = $batch_id ?: $receiver;
+            if ($stmt && $stmt->bind_param('iis', $me, $param2, $text) && $stmt->execute()) {
                 echo json_encode(['success' => true]); exit;
             }
         }
