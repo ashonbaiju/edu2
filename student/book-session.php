@@ -57,7 +57,7 @@ $bookings = $conn->query("
         <p>Book a private session with your teacher for personalized guidance.</p>
     </div>
     <div class="page-actions">
-        <button class="btn btn-primary" onclick="openModal('bookSessionModal')"><i class="fa-solid fa-plus"></i> Request Session</button>
+        <button class="btn btn-primary" onclick="document.getElementById('bookSessionModal').style.display='flex';document.body.style.overflow='hidden'"><i class="fa-solid fa-plus"></i> Request Session</button>
     </div>
 </div>
 
@@ -112,7 +112,7 @@ $bookings = $conn->query("
     <div class="modal">
         <div class="modal-header">
             <h3>Request 1:1 Session</h3>
-            <button class="modal-close" onclick="closeModal('bookSessionModal')"><i class="fa-solid fa-times"></i></button>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').style.display='none';document.body.style.overflow=''"><i class="fa-solid fa-times"></i></button>
         </div>
         <form method="POST">
             <input type="hidden" name="action" value="book_session">
@@ -143,7 +143,7 @@ $bookings = $conn->query("
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline" onclick="closeModal('bookSessionModal')">Cancel</button>
+                <button type="button" class="btn btn-outline" onclick="this.closest('.modal-overlay').style.display='none';document.body.style.overflow=''">Cancel</button>
                 <button type="submit" class="btn btn-primary">Send Request</button>
             </div>
         </form>
@@ -151,8 +151,11 @@ $bookings = $conn->query("
 </div>
 
 <script>
-function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+// Fallback open/close if dashboard.js hasn't loaded
+if (typeof window.openModal !== 'function') {
+    window.openModal = function(id) { const el = document.getElementById(id); if (el) { el.classList.add('open'); document.body.style.overflow = 'hidden'; } };
+    window.closeModal = function(id) { const el = document.getElementById(id); if (el) { el.classList.remove('open'); document.body.style.overflow = ''; } };
+}
 </script>
 
 <?php require_once '../includes/footer.php'; ?>
