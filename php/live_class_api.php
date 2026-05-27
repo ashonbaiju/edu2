@@ -157,20 +157,39 @@ switch ($action) {
     // GET PARTICIPANTS
     // ----------------------------------------------------------------
     case 'get_participants':
+        // Use WebRTC peers table for real-time accurate participant list
         $parts = $conn->query("
-            SELECT u.name, u.role, la.join_time
-            FROM live_attendance la
-            JOIN students s ON la.student_id=s.id
-            JOIN users u ON s.user_id=u.id
-            WHERE la.class_id=$class_id AND la.leave_time IS NULL
-            ORDER BY la.join_time ASC
+            SELECT DISTINCT wp.user_id, wp.user_name AS name, wp.user_role AS role
+            FROM webrtc_peers wp
+            WHERE wp.class_id=$class_id
+            ORDER BY wp.last_ping ASC
         ");
         $data = [];
-        while ($p = $parts->fetch_assoc()) $data[] = $p;
-        // Also add teacher
-        $tc = $conn->query("SELECT u.name FROM live_classes lc JOIN teachers t ON lc.teacher_id=t.id JOIN users u ON t.user_id=u.id WHERE lc.id=$class_id");
-        if ($tc && $tcp = $tc->fetch_assoc()) {
-            array_unshift($data, ['name' => $tcp['name'], 'role' => 'teacher', 'join_time' => null]);
+        if ($parts) {
+            while ($p = $parts->fetch_assoc()) {
+                $data[] = ['user_id' => (int)$p['user_id'], 'name' => $p['name'], 'role' => $p['role']];
+            }
+        }
+        // Fallback: if no WebRTC peers, get from attendance table
+        if (empty($data)) {
+            $parts = $conn->query("
+                SELECT s.user_id, u.name, u.role
+                FROM live_attendance la
+                JOIN students s ON la.student_id=s.id
+                JOIN users u ON s.user_id=u.id
+                WHERE la.class_id=$class_id AND la.leave_time IS NULL
+                ORDER BY la.join_time ASC
+            ");
+            if ($parts) {
+                while ($p = $parts->fetch_assoc()) {
+                    $data[] = ['user_id' => (int)$p['user_id'], 'name' => $p['name'], 'role' => $p['role']];
+                }
+            }
+            // Also add teacher
+            $tc = $conn->query("SELECT t.user_id, u.name FROM live_classes lc JOIN teachers t ON lc.teacher_id=t.id JOIN users u ON t.user_id=u.id WHERE lc.id=$class_id");
+            if ($tc && $tcp = $tc->fetch_assoc()) {
+                array_unshift($data, ['user_id' => (int)$tcp['user_id'], 'name' => $tcp['name'], 'role' => 'teacher']);
+            }
         }
         echo json_encode(['success' => true, 'participants' => $data]);
         break;
