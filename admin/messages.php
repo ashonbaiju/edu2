@@ -132,7 +132,7 @@ if (activeChatId > 0) {
 function fetchChat() {
     if (!activeChatId) return;
     
-    fetch(`<?= BASE_URL ?>get_msg.php?with=${activeChatId}`)
+    fetch(`<?= BASE_URL ?>chat.php?with=${activeChatId}`)
     .then(res => res.json())
     .then(data => {
         if (data.error) return;
