@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS teachers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    qualification VARCHAR(255),
+    specialization VARCHAR(255),
+    phone VARCHAR(20),
+    address TEXT,
+    gender ENUM('male','female','other'),
+    experience_years INT DEFAULT 0,
+    salary DECIMAL(10,2) DEFAULT 0,
+    document_path VARCHAR(255),
+    approval_status ENUM('pending','approved','rejected') DEFAULT 'approved',
+    verification_status ENUM('pending_submission','submitted','verified','rejected') DEFAULT 'pending_submission',
+    aadhar_number VARCHAR(20),
+    aadhar_file VARCHAR(255),
+    certificate_file VARCHAR(255),
+    joined_date DATE,
+    rating DECIMAL(3,2) DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
