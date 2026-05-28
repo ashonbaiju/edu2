@@ -67,7 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-$loc = $conn->query("SELECT * FROM teacher_locations WHERE teacher_id=$tid")->fetch_assoc();
+$loc_res = $conn->query("SELECT * FROM teacher_locations WHERE teacher_id=$tid");
+$loc = $loc_res ? $loc_res->fetch_assoc() : null;
 $batches = $conn->query("SELECT ob.*, s.name as subject_name FROM offline_batches ob JOIN subjects s ON ob.subject_id=s.id WHERE ob.teacher_id=$tid");
 $subjects = $conn->query("SELECT * FROM subjects");
 $requests = $conn->query("SELECT obr.*, u.name as student_name, s.roll_number, ob.grade, sub.name as subject_name, ob.id as b_id FROM offline_batch_requests obr JOIN students s ON obr.student_id=s.id JOIN users u ON s.user_id=u.id JOIN offline_batches ob ON obr.batch_id=ob.id JOIN subjects sub ON ob.subject_id=sub.id WHERE ob.teacher_id=$tid AND obr.status='pending'");
@@ -133,7 +134,7 @@ $requests = $conn->query("SELECT obr.*, u.name as student_name, s.roll_number, o
     <!-- Active Offline Batches -->
     <div class="chart-card">
         <div class="chart-title">Offline Batches</div>
-        <?php if ($batches->num_rows === 0): ?>
+        <?php if (!$batches || $batches->num_rows === 0): ?>
         <p class="empty-msg">No offline batches created yet.</p>
         <?php else: while($b = $batches->fetch_assoc()): ?>
         <div style="padding:15px;background:var(--background);border-radius:15px;margin-bottom:12px;box-shadow:var(--neu-sm);">
@@ -160,7 +161,7 @@ $requests = $conn->query("SELECT obr.*, u.name as student_name, s.roll_number, o
         <table>
             <thead><tr><th>Student</th><th>Batch Target</th><th>Note</th><th>Action</th></tr></thead>
             <tbody>
-                <?php if ($requests->num_rows === 0): ?>
+                <?php if (!$requests || $requests->num_rows === 0): ?>
                 <tr><td colspan="4" class="empty-msg">No pending requests.</td></tr>
                 <?php else: while($r = $requests->fetch_assoc()): ?>
                 <tr>
@@ -186,7 +187,7 @@ $requests = $conn->query("SELECT obr.*, u.name as student_name, s.roll_number, o
         <div class="modal-header"><h3>Create Offline Batch</h3><button class="modal-close" onclick="closeModal('addBatchModal')">&times;</button></div>
         <form method="POST">
             <input type="hidden" name="action" value="add_batch">
-            <div class="form-group"><label>Subject *</label><select name="subject_id" class="form-control" required><?php while($s = $subjects->fetch_assoc()) echo "<option value='{$s['id']}'>{$s['name']}</option>"; ?></select></div>
+            <div class="form-group"><label>Subject *</label><select name="subject_id" class="form-control" required><?php if ($subjects) { while($s = $subjects->fetch_assoc()) echo "<option value='{$s['id']}'>{$s['name']}</option>"; } ?></select></div>
             <div class="form-group"><label>Grade / Class *</label><input type="text" name="grade" class="form-control" placeholder="e.g. Class 10th" required></div>
             <div class="form-group"><label>Timings *</label><input type="text" name="timings" class="form-control" placeholder="e.g. Mon, Wed 4PM-5PM" required></div>
             <div class="form-grid">
