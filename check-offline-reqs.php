@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/includes/auth.php';
 requireRole('teacher');
+require_once __DIR__ . '/config/db.php';
 $uid = $_SESSION['user_id'];
 $tid = $conn->query("SELECT id FROM teachers WHERE user_id=$uid")->fetch_assoc()['id'] ?? 0;
 $since = (int)($_POST['since'] ?? 0);

@@ -5,6 +5,16 @@ requireLogin();
 
 // Fetch notification count
 $notif_count = 0;
+$conn->query("CREATE TABLE IF NOT EXISTS notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(200),
+    message TEXT,
+    type VARCHAR(50) DEFAULT 'info',
+    is_read TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+)");
 $nsql = $conn->prepare("SELECT COUNT(*) as cnt FROM notifications WHERE user_id = ? AND is_read = 0");
 if ($nsql) { $nsql->bind_param('i', $_SESSION['user_id']); $nsql->execute(); $nr = $nsql->get_result(); if ($nr) $notif_count = (int)$nr->fetch_assoc()['cnt']; }
 
