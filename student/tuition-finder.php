@@ -32,22 +32,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 // Search Logic using Haversine Formula
 $teachers = [];
+$sql_error = '';
+$debug_count = 0;
 if ($lat && $lng) {
+    // Check if any teachers have offline mode enabled at all
+    $debug_count = $conn->query("SELECT COUNT(*) as c FROM teacher_locations WHERE is_offline_active=1")->fetch_assoc()['c'] ?? 0;
+    
     $sql = "
         SELECT u.id as u_id, u.name as teacher_name, tl.*, ob.*, sub.name as subject_name, ob.id as batch_id,
-        (6371 * acos(cos(radians($lat)) * cos(radians(tl.latitude)) * cos(radians(tl.longitude) - radians($lng)) + sin(radians($lat)) * sin(radians(tl.latitude)))) AS distance
+        (6371 * acos(LEAST(1, GREATEST(-1, cos(radians($lat)) * cos(radians(tl.latitude)) * cos(radians(tl.longitude) - radians($lng)) + sin(radians($lat)) * sin(radians(tl.latitude)))))) AS distance
         FROM teacher_locations tl
         JOIN teachers t ON tl.teacher_id = t.id
         JOIN users u ON t.user_id = u.id
         JOIN offline_batches ob ON ob.teacher_id = t.id
         JOIN subjects sub ON ob.subject_id = sub.id
-        WHERE tl.is_offline_active = 1 AND ob.status = 'active'
+        WHERE tl.is_offline_active = 1 AND (ob.status IS NULL OR ob.status = 'active')
     ";
     
     if ($subject) $sql .= " AND ob.subject_id = $subject";
     
     $sql .= " HAVING distance < $dist ORDER BY distance ASC";
     $teachers = $conn->query($sql);
+    if (!$teachers) $sql_error = $conn->error;
 }
 
 $subjects = $conn->query("SELECT * FROM subjects");
@@ -88,7 +94,7 @@ $subjects = $conn->query("SELECT * FROM subjects");
     </form>
 </div>
 
-<?php if (!$lat || !$lng): ?>
+    <?php if (!$lat || !$lng): ?>
 <div style="text-align:center;padding:50px 20px;background:var(--background);border-radius:20px;box-shadow:var(--neu-in);">
     <div style="font-size:3.5rem;color:var(--secondary);opacity:0.2;margin-bottom:20px;"><i class="fa-solid fa-map-location-dot"></i></div>
     <h3>Enable Location Access</h3>
@@ -127,6 +133,13 @@ $subjects = $conn->query("SELECT * FROM subjects");
     <?php else: ?>
     <div style="grid-column:1/-1;text-align:center;padding:50px;">
         <p class="empty-msg">No teachers found within <?= $dist ?> km for this subject.</p>
+        <?php if ($sql_error): ?>
+        <p style="color:var(--danger);font-size:0.8rem;margin-top:10px;">DB Error: <?= htmlspecialchars($sql_error) ?></p>
+        <?php elseif ($debug_count == 0): ?>
+        <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:10px;">Tip: No teachers have enabled offline tuition mode yet. Teachers must go to <strong>Offline Setup</strong> in their profile, add their location, toggle <strong>Enable Offline Tuition Mode</strong> ON, and create at least one batch.</p>
+        <?php else: ?>
+        <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:10px;"><?= $debug_count ?> teacher(s) have offline mode enabled. Try increasing the distance or changing the subject filter.</p>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 </div>
