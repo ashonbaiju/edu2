@@ -22,6 +22,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt = $conn->prepare("INSERT INTO session_bookings (student_id, teacher_id, title, scheduled_at, duration) VALUES (?, ?, ?, ?, ?)");
         $stmt->bind_param('iissi', $sid, $teacher_id, $title, $scheduled_at, $duration);
         if ($stmt->execute()) {
+            // Notify teacher
+            $tuid = $conn->query("SELECT user_id FROM teachers WHERE id=$teacher_id")->fetch_assoc()['user_id'] ?? 0;
+            $sname = $_SESSION['name'];
+            if ($tuid) $conn->query("INSERT INTO notifications (user_id, title, message, type) VALUES ($tuid, 'New 1:1 Session Request', '{$sname} requested a private session: {$title}', 'info')");
             $msg = '<div class="alert alert-success">Session request sent! Please wait for teacher approval.</div>';
         } else {
             $msg = '<div class="alert alert-danger">Error: ' . $conn->error . '</div>';
@@ -156,6 +160,13 @@ if (typeof window.openModal !== 'function') {
     window.openModal = function(id) { const el = document.getElementById(id); if (el) { el.classList.add('open'); document.body.style.overflow = 'hidden'; } };
     window.closeModal = function(id) { const el = document.getElementById(id); if (el) { el.classList.remove('open'); document.body.style.overflow = ''; } };
 }
+// ── Real-time: Refresh on session status change every 15s ──
+setInterval(() => {
+    fetch(BASE_URL + 'php/check_notif_count.php')
+        .then(r => r.json())
+        .then(d => { if (d.count > 0) location.reload(); })
+        .catch(() => {});
+}, 15000);
 </script>
 
 <?php require_once '../includes/footer.php'; ?>

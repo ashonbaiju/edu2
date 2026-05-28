@@ -22,61 +22,106 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if (overlay) overlay.addEventListener('click', closeSidebar);
 
-    // Auto-close sidebar when clicking a nav link (mobile)
     document.querySelectorAll('.sidebar .nav-link').forEach(link => {
-        link.addEventListener('click', () => {
-            if (window.innerWidth <= 1024) closeSidebar();
-        });
+        link.addEventListener('click', () => { if (window.innerWidth <= 1024) closeSidebar(); });
     });
-
-    // Close sidebar on outside click (for non-overlay areas)
     document.addEventListener('click', (e) => {
         if (sidebar && toggle && window.innerWidth <= 1024) {
-            if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
-                closeSidebar();
-            }
+            if (!sidebar.contains(e.target) && !toggle.contains(e.target)) closeSidebar();
         }
     });
 
     // ===== Dropdowns =====
     document.addEventListener('click', (e) => {
         document.querySelectorAll('.dropdown-menu.open').forEach(menu => {
-            if (!menu.parentElement.contains(e.target)) {
-                menu.classList.remove('open');
-            }
+            if (!menu.parentElement.contains(e.target)) menu.classList.remove('open');
         });
     });
 
-    // ===== Notifications AJAX fetch =====
+    // ===== Notifications =====
     const notifList = document.getElementById('notif-list');
-    if (notifList) {
-        fetch('/project/php/get_notifications.php')
+    let lastNotifCount = -1;
+
+    function loadNotifList() {
+        if (!notifList) return;
+        fetch(BASE_URL + 'php/get_notifications.php')
             .then(r => r.json())
             .then(data => {
                 if (data.length === 0) {
                     notifList.innerHTML = '<p class="empty-msg">No new notifications</p>';
                     return;
                 }
-                notifList.innerHTML = data.map(n => `
-                    <div class="notif-item ${n.is_read == 0 ? 'unread' : ''}">
+                notifList.innerHTML = data.map(n =>
+                    `<div class="notif-item ${n.is_read == 0 ? 'unread' : ''}">
                         <div class="notif-icon"><i class="fa-solid fa-bell"></i></div>
                         <div class="notif-text">
                             <h5>${escapeHtml(n.title)}</h5>
                             <p>${escapeHtml(n.message)}</p>
                         </div>
-                    </div>
-                `).join('');
+                    </div>`
+                ).join('');
             })
-            .catch(() => {
-                notifList.innerHTML = '<p class="empty-msg">Could not load notifications</p>';
-            });
+            .catch(() => { if (notifList) notifList.innerHTML = '<p class="empty-msg">Could not load notifications</p>'; });
     }
 
-    // ===== Mark-all-read click =====
+    function pollNotifCount() {
+        fetch(BASE_URL + 'php/check_notif_count.php')
+            .then(r => r.json())
+            .then(d => {
+                const c = d.count || 0;
+                const badge = document.querySelector('.icon-btn .badge');
+                if (c > 0) {
+                    if (badge) badge.textContent = c;
+                    else {
+                        const btn = document.querySelector('.icon-btn.neumorphic');
+                        if (btn) {
+                            const b = document.createElement('span');
+                            b.className = 'badge';
+                            b.textContent = c;
+                            btn.appendChild(b);
+                        }
+                    }
+                    if (lastNotifCount >= 0 && c > lastNotifCount && notifList) {
+                        loadNotifList();
+                        showNotifToast(c - lastNotifCount + ' new notification' + (c - lastNotifCount > 1 ? 's' : ''));
+                    }
+                } else {
+                    if (badge) badge.remove();
+                }
+                lastNotifCount = c;
+            })
+            .catch(() => {});
+    }
+
+    function showNotifToast(msg) {
+        let tc = document.getElementById('toastContainer');
+        if (!tc) {
+            tc = document.createElement('div');
+            tc.id = 'toastContainer';
+            tc.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;';
+            document.body.appendChild(tc);
+        }
+        const t = document.createElement('div');
+        t.style.cssText = 'padding:12px 20px;border-radius:12px;background:#6c63ff;color:#fff;box-shadow:0 4px 15px rgba(0,0,0,.2);font-size:0.85rem;font-weight:600;display:flex;align-items:center;gap:10px;cursor:pointer;animation:slideIn .3s ease-out;';
+        t.innerHTML = '<i class="fa-solid fa-bell"></i> ' + msg;
+        t.onclick = function() {
+            const dd = document.getElementById('notifDropdown');
+            if (dd) dd.querySelector('.dropdown-menu')?.classList.add('open');
+            this.remove();
+        };
+        tc.appendChild(t);
+        setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(100%)'; setTimeout(() => t.remove(), 300); }, 5000);
+    }
+
+    loadNotifList();
+    pollNotifCount();
+    setInterval(pollNotifCount, 15000);
+    setInterval(loadNotifList, 30000);
+
     document.addEventListener('click', (e) => {
         if (e.target.textContent.trim() === 'Mark all read') {
             e.preventDefault();
-            fetch('/project/php/mark_notifications_read.php')
+            fetch(BASE_URL + 'php/mark_notifications_read.php')
                 .then(r => r.json())
                 .then(d => {
                     if (d.success) {
@@ -89,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Global Functions
+// ===== Global Functions =====
 function toggleDropdown(id) {
     const menu = document.querySelector(`#${id} .dropdown-menu`);
     document.querySelectorAll('.dropdown-menu.open').forEach(m => { if (m !== menu) m.classList.remove('open'); });
@@ -98,9 +143,6 @@ function toggleDropdown(id) {
 
 function openModal(id) {
     const modal = document.getElementById(id);
-    // #region agent log
-    fetch('http://127.0.0.1:7618/ingest/76244e8b-7950-4ede-b496-488f1a48fab6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'76efa7'},body:JSON.stringify({sessionId:'76efa7',location:'dashboard.js:openModal',message:'openModal',data:{id,modalFound:!!modal},timestamp:Date.now(),hypothesisId:'H2',runId:'post-bind-null-date-fix'})}).catch(()=>{});
-    // #endregion
     if (modal) { modal.classList.add('open'); document.body.style.overflow = 'hidden'; }
 }
 
@@ -109,7 +151,6 @@ function closeModal(id) {
     if (modal) { modal.classList.remove('open'); document.body.style.overflow = ''; }
 }
 
-// Close modals on outside click
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal-overlay')) {
         e.target.classList.remove('open');
@@ -117,7 +158,6 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Close modals on ESC
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         document.querySelectorAll('.modal-overlay.open').forEach(m => {
@@ -134,9 +174,6 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Global Dashboard Functions
-
-// Simple search filter for tables
 (function() {
     const searchInput = document.querySelector('.topnav-search input');
     if (searchInput) {

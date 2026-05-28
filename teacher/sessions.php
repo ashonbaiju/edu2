@@ -23,6 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     
     if ($stmt->execute()) {
+        // Notify student
+        $b_info = $conn->query("SELECT s.user_id as suid, u.name as tname FROM session_bookings sb JOIN students s ON sb.student_id=s.id JOIN teachers t ON sb.teacher_id=t.id JOIN users u ON t.user_id=u.id WHERE sb.id=$booking_id")->fetch_assoc();
+        if ($b_info) {
+            $conn->query("INSERT INTO notifications (user_id, title, message, type) VALUES ({$b_info['suid']}, 'Session {$status}', 'Your 1:1 session request has been {$status} by {$b_info['tname']}.', '{$status}')");
+        }
         $msg = '<div class="alert alert-success">Session ' . $status . ' successfully!</div>';
     } else {
         $msg = '<div class="alert alert-danger">Error: ' . $conn->error . '</div>';
@@ -111,4 +116,21 @@ $bookings = $conn->query("
     </div>
 </div>
 
+<?php if (0): ?><style>
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+</style><?php endif; ?>
+<script>
+// ── Real-time: Check for new session requests every 15s ──
+let lastSessionCount = <?= ($bookings && $bookings->num_rows) ? $bookings->num_rows : 0 ?>;
+setInterval(() => {
+    fetch(BASE_URL + 'php/check_notif_count.php')
+        .then(r => r.json())
+        .then(d => {
+            if (d.count > 0) {
+                location.reload();
+            }
+        })
+        .catch(() => {});
+}, 15000);
+</script>
 <?php require_once '../includes/footer.php'; ?>

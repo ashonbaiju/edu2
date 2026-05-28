@@ -25,6 +25,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     } else {
         $sql = "INSERT INTO offline_batch_requests (student_id, batch_id, request_note) VALUES ($sid, $batch_id, '$note')";
         if ($conn->query($sql)) {
+            // Notify teacher
+            $teacher_res = $conn->query("SELECT ob.teacher_id, u.name as sname FROM offline_batches ob JOIN teachers t ON ob.teacher_id=t.id JOIN users u ON t.user_id=u.id WHERE ob.id=$batch_id");
+            if ($tch = $teacher_res->fetch_assoc()) {
+                $tuid = $conn->query("SELECT user_id FROM teachers WHERE id={$tch['teacher_id']}")->fetch_assoc()['user_id'];
+                $sname = $tch['sname'];
+                $conn->query("INSERT INTO notifications (user_id, title, message, type) VALUES ($tuid, 'New Enrollment Request', '{$sname} wants to join your offline batch.', 'info')");
+            }
             $msg = '<div class="alert alert-success">Enrollment request sent successfully! Wait for teacher approval.</div>';
         }
     }
@@ -169,6 +176,14 @@ $subjects = $conn->query("SELECT * FROM subjects");
 </div>
 
 <script>
+// ── Real-time: Refresh on status changes every 15s ──
+setInterval(() => {
+    fetch(BASE_URL + 'php/check_notif_count.php')
+        .then(r => r.json())
+        .then(d => { if (d.count > 0) location.reload(); })
+        .catch(() => {});
+}, 15000);
+
 function searchLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {

@@ -38,6 +38,7 @@ if ($role === 'teacher' && $current_page !== 'verify' && $current_page !== 'logo
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>css/dashboard.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>css/responsive.css">
+    <script>var BASE_URL = '<?= BASE_URL ?>';</script>
     <script>
         function setTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);

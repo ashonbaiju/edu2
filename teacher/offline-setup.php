@@ -59,6 +59,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if ($status === 'approved') {
             $conn->query("UPDATE offline_batches SET available_seats = available_seats - 1 WHERE id=$batch_id");
         }
+        // Notify student
+        $req_info = $conn->query("SELECT obr.student_id, u.name as tname FROM offline_batch_requests obr JOIN students s ON obr.student_id=s.id JOIN offline_batches ob ON obr.batch_id=ob.id JOIN teachers t ON ob.teacher_id=t.id JOIN users u ON t.user_id=u.id WHERE obr.id=$req_id")->fetch_assoc();
+        if ($req_info) {
+            $suid = $conn->query("SELECT user_id FROM students WHERE id={$req_info['student_id']}")->fetch_assoc()['user_id'];
+            $tname = $req_info['tname'];
+            $conn->query("INSERT INTO notifications (user_id, title, message, type) VALUES ($suid, 'Enrollment {$status}', 'Your enrollment request to {$tname} has been {$status}.', '{$status}')");
+        }
         $conn->commit();
         $msg = '<div class="alert alert-success">Request ' . $status . ' updated!</div>';
     } catch (Exception $e) {
@@ -212,6 +219,29 @@ function getLocation() {
 }
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+// ── Real-time: Poll for new enrollment requests every 15s ──
+let lastReqSeen = 0;
+setInterval(() => {
+    fetch(BASE_URL + 'php/check_offline_requests.php?since=' + lastReqSeen)
+        .then(r => r.json())
+        .then(d => {
+            if (d.count > 0) {
+                showToast(d.count + ' new enrollment request(s)! Refreshing...', 'info');
+                setTimeout(() => location.reload(), 2000);
+            }
+        })
+        .catch(() => {});
+}, 15000);
+function showToast(text, type) {
+    let tc = document.getElementById('toastContainer');
+    if (!tc) { tc = document.createElement('div'); tc.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;'; document.body.appendChild(tc); }
+    const t = document.createElement('div');
+    t.style.cssText = 'padding:12px 20px;border-radius:12px;background:' + (type === 'info' ? '#6c63ff' : '#f44336') + ';color:#fff;box-shadow:0 4px 15px rgba(0,0,0,.2);font-size:0.85rem;font-weight:600;animation:slideIn .3s ease-out;';
+    t.innerHTML = '<i class="fa-solid fa-bell"></i> ' + text;
+    tc.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(100%)'; setTimeout(() => t.remove(), 300); }, 5000);
+}
 </script>
+<style>@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }</style>
 
 <?php require_once '../includes/footer.php'; ?>
