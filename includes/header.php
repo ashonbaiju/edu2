@@ -57,71 +57,74 @@ if ($role === 'teacher' && $current_page !== 'verify' && $current_page !== 'logo
     <script>
     // Notification polling (inline, no external deps)
     function escHtml(t) { var d=document.createElement('div'); d.appendChild(document.createTextNode(t)); return d.innerHTML; }
-    (function() {
-        var lastN = -1, notifList = document.getElementById('notif-list');
-        function poll() {
-            fetch(BASE_URL + 'php/check_notif_count.php', { method:'POST' })
+    var _notifBase = BASE_URL;
+    var _lastN = -1, _notifList = null;
+    function _pollNotif() {
+        fetch(_notifBase + 'notif-count.php', { method:'POST' })
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                var c = d.count || 0, badge = document.querySelector('.icon-btn .badge');
+                if (c > 0) {
+                    if (badge) { badge.textContent = c; }
+                    else {
+                        var btn = document.querySelector('.icon-btn.neumorphic');
+                        if (btn) { var b = document.createElement('span'); b.className = 'badge'; b.textContent = c; btn.appendChild(b); }
+                    }
+                    if (_lastN >= 0 && c > _lastN && _notifList) {
+                        _loadNotifs();
+                        var tc = document.getElementById('toastContainer') || (function(){
+                            var t = document.createElement('div'); t.id = 'toastContainer';
+                            t.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;';
+                            document.body.appendChild(t); return t;
+                        })();
+                        var t = document.createElement('div');
+                        t.style.cssText = 'padding:12px 20px;border-radius:12px;background:#6c63ff;color:#fff;box-shadow:0 4px 15px rgba(0,0,0,.2);font-size:0.85rem;font-weight:600;display:flex;align-items:center;gap:10px;cursor:pointer;animation:slideIn .3s ease-out;';
+                        t.innerHTML = '<i class="fa-solid fa-bell"></i> ' + (c-_lastN) + ' new notification' + (c-_lastN>1?'s':'');
+                        t.onclick = function(){ var dd=document.getElementById('notifDropdown'); if(dd)dd.querySelector('.dropdown-menu')?.classList.add('open'); this.remove(); };
+                        tc.appendChild(t);
+                        setTimeout(function(){ t.style.opacity='0'; t.style.transform='translateX(100%)'; setTimeout(function(){t.remove();},300); },5000);
+                    }
+                } else { if(badge) badge.remove(); }
+                _lastN = c;
+            })
+            .catch(function(){});
+    }
+    function _loadNotifs() {
+        if (!_notifList) return;
+        fetch(_notifBase + 'get-notifs.php', { method:'POST' })
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+                if (!data || data.length === 0) { _notifList.innerHTML = '<p class="empty-msg">No new notifications</p>'; return; }
+                _notifList.innerHTML = data.map(function(n){
+                    return '<div class="notif-item'+(n.is_read==0?' unread':'')+'"><div class="notif-icon"><i class="fa-solid fa-bell"></i></div><div class="notif-text"><h5>'+escHtml(n.title)+'</h5><p>'+escHtml(n.message)+'</p></div></div>';
+                }).join('');
+            })
+            .catch(function(){ if(_notifList) _notifList.innerHTML = '<p class="empty-msg">Could not load notifications</p>'; });
+    }
+    window._loadNotifs = _loadNotifs;
+    // Mark all read listener (delegated, works immediately)
+    document.addEventListener('click', function(e){
+        if (e.target.textContent.trim() === 'Mark all read') {
+            e.preventDefault();
+            fetch(_notifBase + 'mark-notifs-read.php', { method:'POST' })
                 .then(function(r){ return r.json(); })
                 .then(function(d){
-                    var c = d.count || 0, badge = document.querySelector('.icon-btn .badge');
-                    if (c > 0) {
-                        if (badge) { badge.textContent = c; }
-                        else {
-                            var btn = document.querySelector('.icon-btn.neumorphic');
-                            if (btn) { var b = document.createElement('span'); b.className = 'badge'; b.textContent = c; btn.appendChild(b); }
-                        }
-                        if (lastN >= 0 && c > lastN && notifList) {
-                            loadNotifList();
-                            var tc = document.getElementById('toastContainer') || (function(){
-                                var t = document.createElement('div'); t.id = 'toastContainer';
-                                t.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;';
-                                document.body.appendChild(t); return t;
-                            })();
-                            var t = document.createElement('div');
-                            t.style.cssText = 'padding:12px 20px;border-radius:12px;background:#6c63ff;color:#fff;box-shadow:0 4px 15px rgba(0,0,0,.2);font-size:0.85rem;font-weight:600;display:flex;align-items:center;gap:10px;cursor:pointer;animation:slideIn .3s ease-out;';
-                            t.innerHTML = '<i class="fa-solid fa-bell"></i> ' + (c-lastN) + ' new notification' + (c-lastN>1?'s':'');
-                            t.onclick = function(){ var dd=document.getElementById('notifDropdown'); if(dd)dd.querySelector('.dropdown-menu')?.classList.add('open'); this.remove(); };
-                            tc.appendChild(t);
-                            setTimeout(function(){ t.style.opacity='0'; t.style.transform='translateX(100%)'; setTimeout(function(){t.remove();},300); },5000);
-                        }
-                    } else { if(badge) badge.remove(); }
-                    lastN = c;
-                })
-                .catch(function(){});
+                    if(d.success){
+                        var badge = document.querySelector('.icon-btn .badge');
+                        if(badge) badge.remove();
+                        if(_notifList) _notifList.querySelectorAll('.unread').forEach(function(el){ el.classList.remove('unread'); });
+                    }
+                });
         }
-        function loadNotifList() {
-            if (!notifList) return;
-            fetch(BASE_URL + 'php/get_notifications.php', { method:'POST' })
-                .then(function(r){ return r.json(); })
-                .then(function(data){
-                    if (!data || data.length === 0) { notifList.innerHTML = '<p class="empty-msg">No new notifications</p>'; return; }
-                    notifList.innerHTML = data.map(function(n){
-                        return '<div class="notif-item'+(n.is_read==0?' unread':'')+'"><div class="notif-icon"><i class="fa-solid fa-bell"></i></div><div class="notif-text"><h5>'+escHtml(n.title)+'</h5><p>'+escHtml(n.message)+'</p></div></div>';
-                    }).join('');
-                })
-                .catch(function(){ if(notifList) notifList.innerHTML = '<p class="empty-msg">Could not load notifications</p>'; });
-        }
-        window.loadNotifList = loadNotifList;
-        // Mark all read listener
-        document.addEventListener('click', function(e){
-            if (e.target.textContent.trim() === 'Mark all read') {
-                e.preventDefault();
-                fetch(BASE_URL + 'php/mark_notifications_read.php', { method:'POST' })
-                    .then(function(r){ return r.json(); })
-                    .then(function(d){
-                        if(d.success){
-                            var badge = document.querySelector('.icon-btn .badge');
-                            if(badge) badge.remove();
-                            if(notifList) notifList.querySelectorAll('.unread').forEach(function(el){ el.classList.remove('unread'); });
-                        }
-                    });
-            }
-        });
-        loadNotifList();
-        poll();
-        setInterval(poll, 15000);
-        setInterval(loadNotifList, 30000);
-    })();
+    });
+    // Wait for DOM before attaching to #notif-list
+    document.addEventListener('DOMContentLoaded', function(){
+        _notifList = document.getElementById('notif-list');
+        _loadNotifs();
+        _pollNotif();
+        setInterval(_pollNotif, 15000);
+        setInterval(_loadNotifs, 30000);
+    });
     </script>
 </head>
 

@@ -123,7 +123,7 @@ $bookings = $conn->query("
 // ── Real-time: Check for new session requests every 15s ──
 let lastSessionCount = <?= ($bookings && $bookings->num_rows) ? $bookings->num_rows : 0 ?>;
 setInterval(() => {
-    fetch(BASE_URL + 'php/check_notif_count.php')
+    fetch(BASE_URL + 'notif-count.php', { method:'POST' })
         .then(r => r.json())
         .then(d => {
             if (d.count > 0) {

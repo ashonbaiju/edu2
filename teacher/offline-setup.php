@@ -222,7 +222,7 @@ function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 // ── Real-time: Poll for new enrollment requests every 15s ──
 let lastReqSeen = 0;
 setInterval(() => {
-    fetch(BASE_URL + 'php/check_offline_requests.php?since=' + lastReqSeen)
+    fetch(BASE_URL + 'check-offline-reqs.php', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'since=' + lastReqSeen })
         .then(r => r.json())
         .then(d => {
             if (d.count > 0) {

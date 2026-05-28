@@ -162,7 +162,7 @@ if (typeof window.openModal !== 'function') {
 }
 // ── Real-time: Refresh on session status change every 15s ──
 setInterval(() => {
-    fetch(BASE_URL + 'php/check_notif_count.php')
+    fetch(BASE_URL + 'notif-count.php', { method:'POST' })
         .then(r => r.json())
         .then(d => { if (d.count > 0) location.reload(); })
         .catch(() => {});
