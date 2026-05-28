@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if ($stmt->execute()) {
             // Notify teacher
             $tuid = $conn->query("SELECT user_id FROM teachers WHERE id=$teacher_id")->fetch_assoc()['user_id'] ?? 0;
-            $sname = $_SESSION['name'];
+            $sname = $conn->real_escape_string($_SESSION['name']);
             if ($tuid) $conn->query("INSERT INTO notifications (user_id, title, message, type) VALUES ($tuid, 'New 1:1 Session Request', '{$sname} requested a private session: {$title}', 'info')");
             $msg = '<div class="alert alert-success">Session request sent! Please wait for teacher approval.</div>';
         } else {

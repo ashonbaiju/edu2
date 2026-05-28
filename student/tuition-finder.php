@@ -26,11 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $sql = "INSERT INTO offline_batch_requests (student_id, batch_id, request_note) VALUES ($sid, $batch_id, '$note')";
         if ($conn->query($sql)) {
             // Notify teacher
-            $teacher_res = $conn->query("SELECT ob.teacher_id, u.name as sname FROM offline_batches ob JOIN teachers t ON ob.teacher_id=t.id JOIN users u ON t.user_id=u.id WHERE ob.id=$batch_id");
-            if ($tch = $teacher_res->fetch_assoc()) {
-                $tuid = $conn->query("SELECT user_id FROM teachers WHERE id={$tch['teacher_id']}")->fetch_assoc()['user_id'];
-                $sname = $tch['sname'];
-                $conn->query("INSERT INTO notifications (user_id, title, message, type) VALUES ($tuid, 'New Enrollment Request', '{$sname} wants to join your offline batch.', 'info')");
+            $tch_res = $conn->query("SELECT t.user_id as tuid FROM offline_batches ob JOIN teachers t ON ob.teacher_id=t.id WHERE ob.id=$batch_id");
+            if ($tch = $tch_res->fetch_assoc()) {
+                $sname = $conn->real_escape_string($_SESSION['name']);
+                $conn->query("INSERT INTO notifications (user_id, title, message, type) VALUES ({$tch['tuid']}, 'New Enrollment Request', '{$sname} wants to join your offline batch.', 'info')");
             }
             $msg = '<div class="alert alert-success">Enrollment request sent successfully! Wait for teacher approval.</div>';
         }
