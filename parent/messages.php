@@ -11,6 +11,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_msg'])) {
     $message  = $conn->real_escape_string(trim($_POST['message']));
     if ($receiver && $message) {
         $conn->query("INSERT INTO messages (sender_id, receiver_id, message) VALUES ($pid, $receiver, '$message')");
+        $pname = $conn->real_escape_string($_SESSION['name']);
+        $preview = $conn->real_escape_string(mb_substr(trim($_POST['message']), 0, 60));
+        $conn->query("INSERT INTO notifications (user_id, title, message, type) VALUES ($receiver, 'New Message', '$pname: $preview', 'info')");
         $msg = '<div class="alert alert-success"><i class="fa-solid fa-check-circle"></i> Message sent!</div>';
     }
 }

@@ -77,6 +77,21 @@ if (($receiver || $batch_id) && !empty($text)) {
     }
     
     if ($stmt->execute()) {
+        if ($receiver > 0) {
+            $sname = $conn->real_escape_string($_SESSION['name']);
+            $preview = $conn->real_escape_string(mb_substr($text, 0, 60));
+            $conn->query("CREATE TABLE IF NOT EXISTS notifications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                title VARCHAR(200),
+                message TEXT,
+                type VARCHAR(50) DEFAULT 'info',
+                is_read TINYINT(1) DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )");
+            $conn->query("INSERT INTO notifications (user_id, title, message, type) VALUES ($receiver, 'New Message', '$sname: $preview', 'info')");
+        }
         jsonOut(['success' => true]);
     } else {
         jsonOut(['success' => false, 'error' => $stmt->error]);

@@ -26,7 +26,14 @@ if ($action === 'fetch' || $action === 'send') {
         if (($receiver || $batch_id) && !empty($text)) {
             $param2 = $batch_id ?: $receiver;
             $stmt = $batch_id ? $conn->prepare("INSERT INTO messages (sender_id, receiver_id, batch_id, message) VALUES (?, NULL, ?, ?)") : $conn->prepare("INSERT INTO messages (sender_id, receiver_id, message) VALUES (?,?,?)");
-            if ($stmt && $stmt->bind_param('iis', $me, $param2, $text) && $stmt->execute()) { echo json_encode(['success'=>true]); exit; }
+            if ($stmt && $stmt->bind_param('iis', $me, $param2, $text) && $stmt->execute()) {
+                if ($receiver > 0) {
+                    $sname = $conn->real_escape_string($_SESSION['name']);
+                    $preview = $conn->real_escape_string(mb_substr($text, 0, 60));
+                    $conn->query("INSERT INTO notifications (user_id, title, message, type) VALUES ($receiver, 'New Message', '$sname: $preview', 'info')");
+                }
+                echo json_encode(['success'=>true]); exit;
+            }
         }
         echo json_encode(['success'=>false,'error'=>'failed']); exit;
     }

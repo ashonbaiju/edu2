@@ -38,6 +38,11 @@ if ($action === 'fetch' || $action === 'send') {
             }
             $param2 = $batch_id ?: $receiver;
             if ($stmt && $stmt->bind_param('iis', $me, $param2, $text) && $stmt->execute()) {
+                if ($receiver > 0) {
+                    $sname = $conn->real_escape_string($_SESSION['name']);
+                    $preview = $conn->real_escape_string(mb_substr($text, 0, 60));
+                    $conn->query("INSERT INTO notifications (user_id, title, message, type) VALUES ($receiver, 'New Message', '$sname: $preview', 'info')");
+                }
                 echo json_encode(['success' => true]); exit;
             }
         }
